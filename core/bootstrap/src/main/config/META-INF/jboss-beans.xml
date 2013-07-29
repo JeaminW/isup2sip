@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<deployment xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="urn:jboss:bean-deployer:2.0">
+
+
+	<bean name="SCTPManagement" class="org.mobicents.protocols.sctp.ManagementImpl">
+		<constructor>
+			<parameter>SCTPManagement</parameter>
+		</constructor>
+		<property name="persistDir">${jboss.server.data.dir}</property>
+		<property name="singleThread">true</property>
+		<property name="connectDelay">30000</property>
+	</bean>
+
+	<bean name="SCTPShellExecutor"
+		class="org.mobicents.protocols.ss7.m3ua.impl.oam.SCTPShellExecutor">
+		<property name="sctpManagement">
+			<inject bean="SCTPManagement" />
+		</property>
+	</bean>	
+	<!-- ==================================================================== -->
+	<!-- M3UA -->
+	<!-- M3UAManagement is managing the m3ua side commands -->
+	<!-- ==================================================================== -->
+	<!-- -->
+	<bean name="Mtp3UserPart" class="org.mobicents.protocols.ss7.m3ua.impl.M3UAManagementImpl">
+		<constructor>
+			<parameter>Mtp3UserPart</parameter>
+		</constructor>
+		<property name="maxSequenceNumber">256</property>
+		<property name="persistDir">${jboss.server.data.dir}</property>
+		<property name="transportManagement">
+			<inject bean="SCTPManagement" />
+		</property>
+	</bean>
+
+	<bean name="M3UAShellExecutor"
+		class="org.mobicents.protocols.ss7.m3ua.impl.oam.M3UAShellExecutor">
+		<property name="m3uaManagement">
+			<inject bean="Mtp3UserPart" />
+		</property>
+	</bean>
+	
+	<!-- ==================================================================== -->
+	<!-- Scheduler -->
+	<!-- Scheduler for ss7 stack -->
+	<!-- ==================================================================== -->
+	<!-- -->
+	<bean name="SS7Clock" class="org.mobicents.protocols.ss7.scheduler.DefaultClock">
+	</bean>
+
+	<bean name="SS7Scheduler" class="org.mobicents.protocols.ss7.scheduler.Scheduler">
+		<property name="clock">
+			<inject bean="SS7Clock" />
+		</property>
+	</bean>	
+	
+	<!-- ==================================================================== -->
+	<!-- Dialogic Mtp3UserPart -->
+	<!-- ==================================================================== -->
+	<!-- <bean name="Mtp3UserPart" class="org.mobicents.ss7.hardware.dialogic.DialogicMtp3UserPart"> 
+		<property name="sourceModuleId">61</property> <property name="destinationModuleId">34</property> 
+		</bean> -->
+
+	<!-- ==================================================================== -->
+	<!-- ISUP Service -->
+	<!-- ==================================================================== -->
+	<bean name="CircuitManager"
+		class="org.mobicents.protocols.ss7.isup.impl.CircuitManagerImpl">
+	</bean>
+
+	<bean name="IsupStack" class="org.mobicents.protocols.ss7.isup.impl.ISUPStackImpl">
+		<constructor>
+			<parameter>
+				<inject bean="SS7Scheduler" />
+			</parameter>
+			<parameter>22234</parameter>
+			<parameter>2</parameter>
+		</constructor>
+		<property name="mtp3UserPart">
+			<inject bean="Mtp3UserPart" />
+		</property>
+		<property name="circuitManager">
+			<inject bean="CircuitManager" />
+		</property>
+	</bean>
+	
+	<bean name="ISUPSS7Service" class="org.mobicents.ss7.SS7Service">
+		<constructor><parameter>ISUP</parameter></constructor>
+		<annotation>@org.jboss.aop.microcontainer.aspects.jmx.JMX(name="org.mobicents.ss7:service=ISUPSS7Service",exposedInterface=org.mobicents.ss7.SS7ServiceMBean.class,registerDirectly=true)
+		</annotation>
+		<property name="jndiName">java:/mobicents/ss7/isup</property>
+		<property name="stack">
+			<inject bean="IsupStack" property="isupProvider" />
+		</property>
+	</bean>	
+
+	<!-- ==================================================================== -->
+	<!-- Shell Service -->
+	<!-- ==================================================================== -->
+	<!-- Define Shell Executor -->
+	<bean name="ShellExecutor" class="org.mobicents.ss7.management.console.ShellServer">
+		<constructor>
+			<parameter>
+				<inject bean="SS7Scheduler" />
+			</parameter>
+			<parameter>
+				<list class="javolution.util.FastList" elementClass="org.mobicents.ss7.management.console.ShellExecutor">
+					<inject bean="M3UAShellExecutor" />
+					<inject bean="SCTPShellExecutor" />
+				</list>
+			</parameter>
+		</constructor>
+
+		<property name="address">${jboss.bind.address}</property>
+		<property name="port">3435</property>
+		<!-- Enale secured CLI by un-commenting below line
+		<property name="securityDomain">java:/jaas/jmx-console</property>
+		 -->
+	</bean>
+
+	<!-- ==================================================================== -->
+	<!-- ISUP2SIP -->
+	<!-- Isup2SipManagement is managing the all isup2sip server commands -->
+	<!-- ==================================================================== -->
+	<bean name="ServiceManagement" class="org.mobicents.isup2sip.management.Isup2SipManagement">
+		<constructor>
+			<parameter>Isup2SipManagement</parameter>
+		</constructor>
+		<property name="persistDir">${jboss.server.data.dir}</property>
+	</bean>
+</deployment>
