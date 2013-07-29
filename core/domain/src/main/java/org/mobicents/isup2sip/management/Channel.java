@@ -1,8 +1,8 @@
 package org.mobicents.isup2sip.management;
 
-public class Channel {
+public class Channel{
 	public enum State {
-		UNKNOWN, IDLE, USED, BLOCKED, BLOCKREQ
+		UNKNOWN, IDLE, INCO, OUTGO, BLOCKED, BLOCKREQ
 	};
 
 	protected State state;
@@ -14,7 +14,7 @@ public class Channel {
 	protected String endpointId;
 
 	/** ISUP (ea isup-api) cic */
-	int cic; // from isup-api
+	protected int cic; // from isup-api
 
 	public Channel(String gatewayAddr, String endPoint, int isupCic) {
 		state = State.UNKNOWN;

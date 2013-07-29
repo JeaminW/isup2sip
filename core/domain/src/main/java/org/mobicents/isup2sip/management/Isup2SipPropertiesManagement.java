@@ -63,6 +63,8 @@ public class Isup2SipPropertiesManagement implements
 
 	private CicManagement cicManagement;
 
+	private int remoteSPC;
+	
 	private Isup2SipPropertiesManagement(String name) {
 		this.name = name;
 		binding.setClassAttribute(CLASS_ATTRIBUTE);
@@ -86,6 +88,10 @@ public class Isup2SipPropertiesManagement implements
 	public CicManagement getCicManagement() {
 		return cicManagement;
 	}
+	
+	public int getRemoteSPC(){
+		return this.remoteSPC;
+	}
 
 	@Override
 	public String getPersistDir() {
@@ -96,9 +102,10 @@ public class Isup2SipPropertiesManagement implements
 		this.persistDir = persistDir;
 	}
 
-	public void start() throws Exception {
+	public void start(int remotePC, String gw, int part) throws Exception {
 
 		this.persistFile.clear();
+		this.remoteSPC = remotePC;
 
 		if (persistDir != null) {
 			this.persistFile.append(persistDir).append(File.separator)
@@ -125,7 +132,7 @@ public class Isup2SipPropertiesManagement implements
 
 		// this.setUpDataSource();
 
-		this.cicManagement = new CicManagement();
+		this.cicManagement = new CicManagement(gw, part);
 
 	}
 

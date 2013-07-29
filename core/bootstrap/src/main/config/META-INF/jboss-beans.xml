@@ -56,13 +56,6 @@
 	</bean>	
 	
 	<!-- ==================================================================== -->
-	<!-- Dialogic Mtp3UserPart -->
-	<!-- ==================================================================== -->
-	<!-- <bean name="Mtp3UserPart" class="org.mobicents.ss7.hardware.dialogic.DialogicMtp3UserPart"> 
-		<property name="sourceModuleId">61</property> <property name="destinationModuleId">34</property> 
-		</bean> -->
-
-	<!-- ==================================================================== -->
 	<!-- ISUP Service -->
 	<!-- ==================================================================== -->
 	<bean name="CircuitManager"
@@ -74,7 +67,7 @@
 			<parameter>
 				<inject bean="SS7Scheduler" />
 			</parameter>
-			<parameter>22234</parameter>
+			<parameter>111</parameter>
 			<parameter>2</parameter>
 		</constructor>
 		<property name="mtp3UserPart">
@@ -128,5 +121,9 @@
 			<parameter>Isup2SipManagement</parameter>
 		</constructor>
 		<property name="persistDir">${jboss.server.data.dir}</property>
+		<property name="gateway">192.168.1.13:2427</property>
+		<property name="remoteSPC">222</property>
+		<property name="persistDir">${jboss.server.data.dir}</property>
+
 	</bean>
 </deployment>

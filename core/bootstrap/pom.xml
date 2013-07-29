@@ -109,13 +109,6 @@
 			<version>${jss7.mobicents.version}</version>
 		</dependency>
 
-		<!-- Hardware Dialogic Java -->
-		<dependency>
-			<artifactId>mobicents-dialogic</artifactId>
-			<groupId>org.mobicents.protocols.ss7.hardware</groupId>
-			<version>${jss7.mobicents.version}</version>
-		</dependency>
-
 		<!-- MTP -->
 		<dependency>
 			<artifactId>mtp</artifactId>

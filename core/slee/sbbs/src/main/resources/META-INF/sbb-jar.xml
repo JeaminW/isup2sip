@@ -11,10 +11,16 @@
 			<sbb-abstract-class reentrant="True">
 				<sbb-abstract-class-name>org.mobicents.isup2sip.sbb.Isup2SipSbb</sbb-abstract-class-name>
 				<cmp-field>
-					<cmp-field-name>incomingDialog</cmp-field-name>
+					<cmp-field-name>sipEvent</cmp-field-name>
 				</cmp-field>
 				<cmp-field>
-					<cmp-field-name>outgoingDialog</cmp-field-name>
+					<cmp-field-name>cicValue</cmp-field-name>
+				</cmp-field>
+				<cmp-field>
+					<cmp-field-name>mgcpCallIdentifier</cmp-field-name>
+				</cmp-field>
+				<cmp-field>
+					<cmp-field-name>mgcpConnectionIdentifier</cmp-field-name>
 				</cmp-field>
 			</sbb-abstract-class>
 		</sbb-classes>
