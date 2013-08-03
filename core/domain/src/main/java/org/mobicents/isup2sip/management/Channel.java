@@ -2,7 +2,13 @@ package org.mobicents.isup2sip.management;
 
 public class Channel{
 	public enum State {
-		UNKNOWN, IDLE, INCO, OUTGO, BLOCKED, BLOCKREQ
+		UNKNOWN, 
+		IDLE, 		// can be allocated/seized
+		INCO, 		// incoming call setup
+		OUTGO, 		// outgoing call setup
+		ANSWERED, 
+		BLOCKED, 
+		BLOCKREQ
 	};
 
 	protected State state;

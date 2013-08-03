@@ -65,14 +65,27 @@ public class CicManagement {
 		}
 	}
 
-	public void setBusy(int cic) {
+	public boolean setBusy(int cic) {
 		synchronized (synchCic) {
 			try {
-				channelByCic.get(cic).setState(State.INCO);
+				if(channelByCic.get(cic).getState()==State.IDLE){
+					channelByCic.get(cic).setState(State.INCO);
+					return true;
+				}
+				return false;
+			} catch (Exception e) {
+				return false;
+			}
+		}
+	}
+
+	public void setAnswered(int cic) {
+		synchronized (synchCic) {
+			try {
+				channelByCic.get(cic).setState(State.ANSWERED);
 			} catch (Exception e) {
 
 			}
 		}
 	}
-
 }

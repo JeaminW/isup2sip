@@ -77,7 +77,11 @@ import org.mobicents.isup2sip.management.Isup2SipPropertiesManagement;
 import org.mobicents.isup2sip.sbb.CodingShemes;
 import org.mobicents.protocols.ss7.isup.ISUPMessageFactory;
 import org.mobicents.protocols.ss7.isup.ISUPParameterFactory;
+import org.mobicents.protocols.ss7.isup.message.AddressCompleteMessage;
+import org.mobicents.protocols.ss7.isup.message.AnswerMessage;
 import org.mobicents.protocols.ss7.isup.message.InitialAddressMessage;
+import org.mobicents.protocols.ss7.isup.message.ReleaseCompleteMessage;
+import org.mobicents.protocols.ss7.isup.message.ReleaseMessage;
 import org.mobicents.protocols.ss7.isup.message.parameter.CalledPartyNumber;
 import org.mobicents.protocols.ss7.isup.message.parameter.CallingPartyCategory;
 import org.mobicents.protocols.ss7.isup.message.parameter.CallingPartyNumber;
@@ -85,6 +89,7 @@ import org.mobicents.protocols.ss7.isup.message.parameter.CircuitIdentificationC
 import org.mobicents.protocols.ss7.isup.message.parameter.ForwardCallIndicators;
 import org.mobicents.protocols.ss7.isup.message.parameter.NatureOfConnectionIndicators;
 import org.mobicents.protocols.ss7.isup.message.parameter.TransmissionMediumRequirement;
+import org.mobicents.slee.resources.ss7.isup.ratype.CircuitActivity;
 import org.mobicents.slee.resources.ss7.isup.ratype.RAISUPProvider;
 
 /**
@@ -123,9 +128,16 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
     
 	// Initial request
 	public void onInviteEvent(RequestEvent sipEvent, ActivityContextInterface aci) {
+		
+		if(this.getSipEvent() != null){
+			tracer.warning("Re-Invite event");
+			onReInviteEvent(sipEvent, aci);
+			return;
+		}
+		
+		tracer.warning("(primary) Invite event");
 		this.setSipEvent(sipEvent);
 		
-		//tracer.debug("Invite event");
 		// ACI is the server transaction activity
 		try {
 			// try to allocate CIC
@@ -187,6 +199,69 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 		}
 	}
 
+	public void onIAM(InitialAddressMessage iam, ActivityContextInterface aci){
+		
+		tracer.warning("isup IAM " + iam.getCircuitIdentificationCode().getCIC());
+		int cic = iam.getCircuitIdentificationCode().getCIC();
+		this.setCicValue(cic);
+		showMe();
+		
+		
+		if(! cicManagement.setBusy(this.getCicValue())){
+			// stop a call. 
+			tracer.warning("CIC is not idle");
+			
+		}
+		// just dummy code now
+		AddressCompleteMessage msg = isupMessageFactory.createACM(this.getCicValue());
+        msg.setSls(this.getCicValue());
+
+        try {
+        	CircuitActivity circuitActivity = isupProvider.createCircuitActivity(msg,remoteSPC);
+        	ActivityContextInterface cicAci = isupActivityContextInterfaceFactory.getActivityContextInterface(circuitActivity);
+        	cicAci.attach(sbbContext.getSbbLocalObject());
+        	circuitActivity.sendMessage(msg);
+            
+//        	isupProvider.sendMessage(msg,remoteSPC);
+            } catch (Exception e) {
+            	// TODO Auto-generated catch block
+        		e.printStackTrace();
+        }
+	}
+	
+	
+	
+	
+	public void onANM(AnswerMessage anm, ActivityContextInterface aci){
+		tracer.warning("isup ANM");
+		showMe();
+		
+		sipReplyToRequestEvent(this.getSipEvent(), Response.OK);
+		
+		cicManagement.setAnswered(this.getCicValue());
+	}
+	
+	public void onACM(AddressCompleteMessage isupEvent, ActivityContextInterface aci){
+		tracer.warning("isup ACM");
+		showMe();
+		
+		sipReplyToRequestEvent(this.getSipEvent(), Response.RINGING);
+		
+		cicManagement.setAnswered(this.getCicValue());
+	}	
+	
+	public void onREL(ReleaseMessage rel, ActivityContextInterface aci){
+		tracer.warning("isup REL");
+		showMe();
+	}
+	
+	public void onRLC(ReleaseCompleteMessage isupEvent, ActivityContextInterface aci){
+		tracer.warning("isup REL");
+		showMe();
+	}
+	
+
+
 	public void onCreateConnectionResponse(CreateConnectionResponse event,
 			ActivityContextInterface aci) {
 		tracer.info("CRCX RESP sbb=" + sbbContext.getSbbLocalObject());
@@ -227,7 +302,7 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 			tracer.warning("From header=" + fromHeader + " ->" + aNumber);
 			
 			InitialAddressMessage msg = isupMessageFactory.createIAM(this.getCicValue());
-			CircuitIdentificationCode cic = isupParameterFactory.createCircuitIdentificationCode();
+//			CircuitIdentificationCode cic = isupParameterFactory.createCircuitIdentificationCode();
             NatureOfConnectionIndicators nai = isupParameterFactory.createNatureOfConnectionIndicators();
             ForwardCallIndicators fci = isupParameterFactory.createForwardCallIndicators();
             CallingPartyCategory cpg = isupParameterFactory.createCallingPartyCategory();
@@ -240,11 +315,17 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
             msg.setForwardCallIndicators(fci);
             msg.setCallingPartCategory(cpg);
             msg.setCalledPartyNumber(cpn);
+            msg.setCallingPartyNumber(cgp);
             msg.setTransmissionMediumRequirement(tmr);
+            msg.setSls(this.getCicValue());
 
             try {
-                isupProvider.sendMessage(msg,remoteSPC);
-
+            	CircuitActivity circuitActivity = isupProvider.createCircuitActivity(msg,remoteSPC);
+            	ActivityContextInterface cicAci = isupActivityContextInterfaceFactory.getActivityContextInterface(circuitActivity);
+            	cicAci.attach(sbbContext.getSbbLocalObject());
+            	circuitActivity.sendMessage(msg);
+                
+//            	isupProvider.sendMessage(msg,remoteSPC);
                 } catch (Exception e) {
                 	// TODO Auto-generated catch block
             		e.printStackTrace();
@@ -274,7 +355,20 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 			}
 		}
 	}
+
+	public void onModifyConnectionResponse(CreateConnectionResponse event,
+			ActivityContextInterface aci) {}
+
+	public void onDeleteConnectionResponse(CreateConnectionResponse event,
+				ActivityContextInterface aci) {}
+
 	
+	
+	
+	
+
+	public void onReInviteEvent(RequestEvent sipEvent, ActivityContextInterface aci) {
+
 	// Responses
 	public void on1xxResponse(ResponseEvent event, ActivityContextInterface aci) {
 		if (event.getResponse().getStatusCode() == Response.TRYING) {
@@ -344,6 +438,8 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 		}
 	}
 	
+	
+
 	
 	
 	public abstract void setCicValue(int cicValue);

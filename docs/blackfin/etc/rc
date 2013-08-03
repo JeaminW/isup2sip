@@ -1,0 +1,158 @@
+# This file targets a *development* system.  Many things are not
+# needed for *production* systems.  Comment out what you do not need.
+
+hostname blackfin
+
+mount -t proc proc /proc -o noexec,nosuid,nodev
+mount -t sysfs sysfs /sys -o noexec,nosuid,nodev
+
+#
+# Setup dynamic /dev and let mdev manage it for us
+#
+if [ -e /bin/mdev ] ; then
+	mount -t tmpfs mdev /dev -o exec,nosuid,mode=0755,size=10M
+	> /dev/mdev.seq
+	[ -e /proc/sys/kernel/hotplug ] && echo /bin/mdev > /proc/sys/kernel/hotplug
+	/bin/mdev -s
+
+	# some people want this (like to be verbose in their scripts?)
+	ln -s /proc/self/fd /dev/fd
+	ln -s fd/0 /dev/stdin
+	ln -s fd/1 /dev/stdout
+	ln -s fd/2 /dev/stderr
+fi
+
+#
+# Setup dynamic pseudo-terminal file system ... needed by any system that
+# uses telnet or ssh (like dropbear) rather than the old static pty system.
+# You should give this a dedicated gid and set the mode to 0650.
+#
+mkdir -p /dev/pts
+mount -t devpts devpts /dev/pts -o noexec,nosuid
+
+#
+# Give the log/state/runtime files in /var temporary storage that'll be
+# lost when we reboot.
+#
+mount -t ramfs var /var
+mkdir /var/tmp /var/log /var/run /var/lock /var/lib
+
+#
+# Give temp files a read/write location not in flash/etc...
+#
+mount -t tmpfs tmp /tmp -o nosuid,nodev
+
+#
+# Needed if you plan on doing anything USB related
+#
+[ -d /proc/bus/usb ] && mount -t usbfs usbfs /proc/bus/usb
+
+#
+# Needed if you plan on doing anything USB gadget related
+#
+if grep -qs gadgetfs /proc/filesystems ; then
+	mkdir -p /dev/gadget
+	mount -t gadgetfs gadgetfs /dev/gadget
+fi
+
+#
+# Needed if you run an NFS server on the board
+#
+grep -qs nfsd /proc/filesystems && mount -t nfsd nfsd /proc/fs/nfsd
+
+#
+# Useful for debugging only
+#
+[ -d /sys/kernel/debug ] && mount -t debugfs debugfs /sys/kernel/debug
+
+#
+# Create your own interpreters for random file formats
+#
+[ -d /proc/sys/fs/binfmt_misc ] && mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc
+
+#
+# User interface to security modules (selinux, etc...)
+#
+[ -d /sys/kernel/security ] && mount -t securityfs securityfs /sys/kernel/security
+
+#
+# the default calculated values for these kernel controls are too small for
+# an embedded nommu system, so override them.  For more info check out
+# - ./Documentation/sysctl/vm.txt
+# - ./Documentation/filesystems/proc.txt
+#
+echo 4096 > /proc/sys/vm/min_free_kbytes
+echo 300  > /proc/sys/vm/vfs_cache_pressure
+
+#
+# Automount stuff if people have it configured
+#
+[ -e /etc/fstab ] && mount -a
+
+ifconfig lo 127.0.0.1
+
+export bootsrv=`dmesg | grep bootserver | sed -n 's/.*bootserver=\(.*\).*\,\ rootserver=\(.*\)/\1/p'`
+export bootdir=`dmesg | grep eth0 | grep addr= | sed -n 's/.*addr=\(.*\).*\,\ mask=\(.*\)/\1/p'`
+
+sleep 1
+cd /var/tmp
+tftp -g $bootsrv -r mysport.ko
+mv `ls` /lib/modules/3.0.8-ADI-2011R1/kernel/drivers/char/mysport/
+tftp -g $bootsrv -r $bootdir/mysport.ko
+mv `ls` /lib/modules/3.0.8-ADI-2011R1/kernel/drivers/char/mysport/
+
+cd /var/tmp
+tftp -g $bootsrv -r m3ua
+tftp -g $bootsrv -r bsc
+tftp -g $bootsrv -r hdlc
+tftp -g $bootsrv -r mgcp
+tftp -g $bootsrv -r media
+tftp -g $bootsrv -r monitor
+mv `ls` /bin/
+
+tftp -g $bootsrv -r $bootdir/m3ua
+tftp -g $bootsrv -r $bootdir/bsc
+tftp -g $bootsrv -r $bootdir/hdlc
+tftp -g $bootsrv -r $bootdir/mgcp
+tftp -g $bootsrv -r $bootdir/media
+tftp -g $bootsrv -r $bootdir/monitor
+mv `ls` /bin/
+
+tftp -g $bootsrv -r $bootdir/hdlc.conf
+tftp -g $bootsrv -r $bootdir/hdlc1.conf
+tftp -g $bootsrv -r $bootdir/media.conf
+tftp -g $bootsrv -r $bootdir/media1.conf
+tftp -g $bootsrv -r $bootdir/m3ua.conf
+tftp -g $bootsrv -r $bootdir/m3ua1.conf
+tftp -g $bootsrv -r $bootdir/m3ua2.conf
+tftp -g $bootsrv -r $bootdir/m3ua3.conf
+tftp -g $bootsrv -r $bootdir/bsc.conf
+mv `ls` /bin/
+
+
+cd /lib/modules/3.0.8-ADI-2011R1/kernel/drivers/char/mysport/
+insmod mysport.ko
+
+cd /bin
+chmod +x hdlc
+chmod +x m3ua
+chmod +x bsc
+chmod +x mgcp
+chmod +x media
+chmod +x monitor
+
+sleep 2
+./hdlc `cat hdlc.conf` &
+./hdlc `cat hdlc1.conf` &
+./media `cat media.conf` &
+./media `cat media1.conf` &
+
+sleep 1
+./mgcp $bootdir &
+
+./m3ua `cat m3ua.conf` &
+./m3ua `cat m3ua1.conf` &
+./m3ua `cat m3ua2.conf` &
+./m3ua `cat m3ua3.conf` &
+
+./bsc `cat bsc.conf` &
