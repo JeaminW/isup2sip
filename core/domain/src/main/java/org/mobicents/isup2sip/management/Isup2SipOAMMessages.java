@@ -21,20 +21,28 @@
  */
 package org.mobicents.isup2sip.management;
 
-public interface Isup2SipPropertiesManagementMBean {
+/**
+ * 
+ * @author amit bhayani
+ * 
+ */
+public interface Isup2SipOAMMessages {
 
-	public String getPersistDir();
-	
-	public int getRemoteSPC();
+	/**
+	 * Generic constants
+	 */
+	public static final String TAB = "        ";
 
-	public void setRemoteSPC(int pc);
-	
-	public int getGatewayPart();
-	
-	public void setGatewayPart(int part);
-	
-	public String getGateway();
-	
-	public void setGateway(String gw);
-	
+	public static final String SPACE = " ";
+
+	public static final String NEW_LINE = "\n";
+
+	public static final String COMMA = ",";
+
+	public static final String INVALID_COMMAND = "Invalid Command";
+
+	public static final String SHORT_COMMAND = "Command is too short";
+
+	public static final String PARAMETER_SUCCESSFULLY_SET = "Parameter has been successfully set";
+
 }

@@ -43,13 +43,7 @@ public class Isup2SipManagement {
 	private Isup2SipPropertiesManagement servicePropertiesManagement = null;
 
 	private MBeanServer mbeanServer = null;
-	
-	private String gatewayForDebug = null;
-	
-	private int gatewayPartForDebug = 0;
-
-	private int remoteSPC = 0;
-	
+		
 	public Isup2SipManagement(String name) {
 		this.name = name;
 	}
@@ -65,26 +59,13 @@ public class Isup2SipManagement {
 	public void setPersistDir(String persistDir) {
 		this.persistDir = persistDir;
 	}
-	
-	public void setGateway(String gw){
-		this.gatewayForDebug = gw;
-	}
-
-	public void setGatewayPart(int part){
-		this.gatewayPartForDebug = part;
-	}
-
-	public void setRemoteSPC(int spc){
-		this.remoteSPC = spc;
-	}
-	
+		
 	public void start() throws Exception {
 		this.servicePropertiesManagement = Isup2SipPropertiesManagement
 				.getInstance(this.name);
 		
-		logger.info("starting as GW=" + gatewayForDebug + ", part=" + gatewayPartForDebug);
 		this.servicePropertiesManagement.setPersistDir(this.persistDir);
-		this.servicePropertiesManagement.start(remoteSPC,gatewayForDebug,gatewayPartForDebug);
+		this.servicePropertiesManagement.start();
 
 		// Register the MBeans
 		this.mbeanServer = MBeanServerLocator.locateJBoss();

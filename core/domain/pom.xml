@@ -16,6 +16,11 @@
 
 	<dependencies>
 		<dependency>
+			<artifactId>shell-server-api</artifactId>
+			<groupId>org.mobicents.protocols.ss7.management</groupId>
+			<version>${jss7.mobicents.version}</version>
+		</dependency>
+		<dependency>
 			<groupId>javolution</groupId>
 			<artifactId>javolution</artifactId>
 			<version>${javolution.version}</version>

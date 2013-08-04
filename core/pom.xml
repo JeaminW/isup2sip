@@ -15,9 +15,7 @@
 
 	<modules>
 		<module>domain</module>
-		<!--
 		<module>oam/cli</module>
-		-->
 		<module>slee</module>
 		<module>bootstrap</module>
 	</modules>

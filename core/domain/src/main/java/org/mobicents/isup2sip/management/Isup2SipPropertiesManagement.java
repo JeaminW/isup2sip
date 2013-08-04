@@ -37,15 +37,18 @@ import org.apache.log4j.Logger;
 public class Isup2SipPropertiesManagement implements
 		Isup2SipPropertiesManagementMBean {
 
-	private static final Logger logger = Logger
+	private static final org.apache.log4j.Logger logger = Logger
 			.getLogger(Isup2SipPropertiesManagement.class);
 
-	protected static final String SERVICE_PLATFORM_URL = "spurl";
+	protected static final String GATEWAY = "gateway";
+	protected static final String GATEWAY_PART = "part";
+	protected static final String REMOTE_PC = "remote";
+
 
 	private static final String TAB_INDENT = "\t";
 	private static final String CLASS_ATTRIBUTE = "type";
 	private static final XMLBinding binding = new XMLBinding();
-	private static final String PERSIST_FILE_NAME = "isup2sipproperties.xml";
+	private static final String PERSIST_FILE_NAME = "isup2sip_properties.xml";
 
 	private static Isup2SipPropertiesManagement instance;
 
@@ -55,8 +58,10 @@ public class Isup2SipPropertiesManagement implements
 
 	private final TextBuilder persistFile = TextBuilder.newInstance();
 
-	private String servicePlatformUrl;
+	private String gateway;
 
+	private int gatewayPartForDebug;
+	
 	// private DataSource dataSource;
 
 	private boolean countersEnabled = true;
@@ -89,10 +94,40 @@ public class Isup2SipPropertiesManagement implements
 		return cicManagement;
 	}
 	
+	@Override
 	public int getRemoteSPC(){
 		return this.remoteSPC;
 	}
 
+	@Override
+	public void setRemoteSPC(int pc){
+		this.remoteSPC = pc;
+		logger.warn("remote SPC is set to " + pc);
+	}
+	
+	@Override
+	public int getGatewayPart(){
+		return this.gatewayPartForDebug;
+	}
+
+	@Override
+	public void setGatewayPart(int part){
+		this.gatewayPartForDebug = part;
+		logger.warn("gateway Part is set to " + part);
+	}
+		
+	@Override
+	public String getGateway(){
+		return this.gateway;
+	}
+
+	@Override
+	public void setGateway(String gw){
+		this.gateway = gw;
+	}
+		
+	
+	
 	@Override
 	public String getPersistDir() {
 		return persistDir;
@@ -102,10 +137,9 @@ public class Isup2SipPropertiesManagement implements
 		this.persistDir = persistDir;
 	}
 
-	public void start(int remotePC, String gw, int part) throws Exception {
+	public void start() throws Exception {
 
 		this.persistFile.clear();
-		this.remoteSPC = remotePC;
 
 		if (persistDir != null) {
 			this.persistFile.append(persistDir).append(File.separator)
@@ -132,7 +166,7 @@ public class Isup2SipPropertiesManagement implements
 
 		// this.setUpDataSource();
 
-		this.cicManagement = new CicManagement(gw, part);
+		this.cicManagement = new CicManagement(this.gateway, this.gatewayPartForDebug);
 
 	}
 
@@ -156,8 +190,9 @@ public class Isup2SipPropertiesManagement implements
 			// writer.setReferenceResolver(new XMLReferenceResolver());
 			writer.setIndentation(TAB_INDENT);
 
-			writer.write(this.servicePlatformUrl, SERVICE_PLATFORM_URL,
-					String.class);
+			writer.write(this.gateway, GATEWAY,  String.class);
+			writer.write(this.gatewayPartForDebug, GATEWAY_PART,  Integer.class);
+			writer.write(this.remoteSPC, REMOTE_PC,  Integer.class);
 
 			writer.close();
 		} catch (Exception e) {
@@ -178,8 +213,12 @@ public class Isup2SipPropertiesManagement implements
 					persistFile.toString()));
 
 			reader.setBinding(binding);
-			this.servicePlatformUrl = reader.read(SERVICE_PLATFORM_URL,
-					String.class);
+			this.gateway = reader.read(GATEWAY, String.class);
+			this.gatewayPartForDebug = reader.read(GATEWAY_PART, Integer.class);
+			this.remoteSPC = reader.read(REMOTE_PC, Integer.class);
+			
+			
+			
 			reader.close();
 		} catch (XMLStreamException ex) {
 			// this.logger.info(

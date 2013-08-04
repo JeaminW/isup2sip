@@ -101,6 +101,7 @@
 				<list class="javolution.util.FastList" elementClass="org.mobicents.ss7.management.console.ShellExecutor">
 					<inject bean="M3UAShellExecutor" />
 					<inject bean="SCTPShellExecutor" />
+					<inject bean="Isup2SipShellExecutor" />
 				</list>
 			</parameter>
 		</constructor>
@@ -121,9 +122,14 @@
 			<parameter>Isup2SipManagement</parameter>
 		</constructor>
 		<property name="persistDir">${jboss.server.data.dir}</property>
-		<property name="gateway">192.168.1.13:2427</property>
-		<property name="remoteSPC">222</property>
-		<property name="persistDir">${jboss.server.data.dir}</property>
+<!--		<property name="gateway">192.168.1.13:2427</property>
+		<property name="remoteSPC">222</property>-->
 
 	</bean>
+<!--	<bean name="Isup2SipShellExecutor" class="org.mobicents.isup2sip.domain.Isup2SipShellExecutor">
+		<property name="isup2sipManagement">
+			<inject bean="Isup2SipManagement" />
+		</property>
+	</bean>	
+-->
 </deployment>

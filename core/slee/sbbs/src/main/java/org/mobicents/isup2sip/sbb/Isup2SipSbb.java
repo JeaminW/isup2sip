@@ -367,7 +367,7 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 	
 	
 
-	public void onReInviteEvent(RequestEvent sipEvent, ActivityContextInterface aci) {
+	public void onReInviteEvent(RequestEvent sipEvent, ActivityContextInterface aci) {}
 
 	// Responses
 	public void on1xxResponse(ResponseEvent event, ActivityContextInterface aci) {
