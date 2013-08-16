@@ -122,14 +122,11 @@
 			<parameter>Isup2SipManagement</parameter>
 		</constructor>
 		<property name="persistDir">${jboss.server.data.dir}</property>
-<!--		<property name="gateway">192.168.1.13:2427</property>
-		<property name="remoteSPC">222</property>-->
 
 	</bean>
-<!--	<bean name="Isup2SipShellExecutor" class="org.mobicents.isup2sip.domain.Isup2SipShellExecutor">
-		<property name="isup2sipManagement">
+-	<bean name="Isup2SipShellExecutor" class="org.mobicents.isup2sip.management.Isup2SipShellExecutor">
+		<property name="isup2SipManagement">
 			<inject bean="Isup2SipManagement" />
 		</property>
 	</bean>	
--->
 </deployment>

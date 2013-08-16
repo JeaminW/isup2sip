@@ -11,6 +11,9 @@
 			<sbb-abstract-class reentrant="True">
 				<sbb-abstract-class-name>org.mobicents.isup2sip.sbb.Isup2SipSbb</sbb-abstract-class-name>
 				<cmp-field>
+					<cmp-field-name>conversionType</cmp-field-name>
+				</cmp-field>
+				<cmp-field>
 					<cmp-field-name>sipEvent</cmp-field-name>
 				</cmp-field>
 				<cmp-field>
@@ -21,6 +24,12 @@
 				</cmp-field>
 				<cmp-field>
 					<cmp-field-name>mgcpConnectionIdentifier</cmp-field-name>
+				</cmp-field>
+				<cmp-field>
+					<cmp-field-name>aNumber</cmp-field-name>
+				</cmp-field>
+				<cmp-field>
+					<cmp-field-name>bNumber</cmp-field-name>
 				</cmp-field>
 			</sbb-abstract-class>
 		</sbb-classes>

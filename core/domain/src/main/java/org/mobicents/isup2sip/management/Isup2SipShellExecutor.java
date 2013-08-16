@@ -34,7 +34,7 @@ public class Isup2SipShellExecutor implements ShellExecutor {
 
 	private static final Logger logger = Logger.getLogger(Isup2SipShellExecutor.class);
 
-	private Isup2SipManagement isup2sipManagement;
+	private Isup2SipManagement isup2SipManagement;
 	private Isup2SipPropertiesManagement isup2sipPropertiesManagement = Isup2SipPropertiesManagement.getInstance();
 
 	/**
@@ -45,11 +45,11 @@ public class Isup2SipShellExecutor implements ShellExecutor {
 	}
 
 	public Isup2SipManagement getIsup2SipManagement() {
-		return isup2sipManagement;
+		return isup2SipManagement;
 	}
 
 	public void setIsup2SipManagement(Isup2SipManagement isup2sipManagement) {
-		this.isup2sipManagement = isup2sipManagement;
+		this.isup2SipManagement = isup2sipManagement;
 	}
 
 	/*
@@ -111,6 +111,8 @@ public class Isup2SipShellExecutor implements ShellExecutor {
 			isup2sipPropertiesManagement.setGatewayPart(Integer.parseInt(options[3]));
 		} else if (parName.equals(Isup2SipPropertiesManagement.REMOTE_PC)) {
 			isup2sipPropertiesManagement.setRemoteSPC(Integer.parseInt(options[3]));
+		} else if (parName.equals(Isup2SipPropertiesManagement.SIP_PEER)) {
+			isup2sipPropertiesManagement.setSipPeer(options[3]);
 		} else {
 			return Isup2SipOAMMessages.INVALID_COMMAND;
 		}
@@ -138,6 +140,8 @@ public class Isup2SipShellExecutor implements ShellExecutor {
 				sb.append(Integer.toString(isup2sipPropertiesManagement.getGatewayPart()));
 			} else if (parName.equals(Isup2SipPropertiesManagement.REMOTE_PC)) {
 				sb.append(Integer.toString(isup2sipPropertiesManagement.getRemoteSPC()));
+			} else if (parName.equals(Isup2SipPropertiesManagement.SIP_PEER)) {
+				sb.append(isup2sipPropertiesManagement.getSipPeer());
 			} else {
 				return Isup2SipOAMMessages.INVALID_COMMAND;
 			}
@@ -155,6 +159,10 @@ public class Isup2SipShellExecutor implements ShellExecutor {
 
 			sb.append(Isup2SipPropertiesManagement.REMOTE_PC + " = ");
 			sb.append(Integer.toString(isup2sipPropertiesManagement.getRemoteSPC()));
+			sb.append(", ");
+
+			sb.append(Isup2SipPropertiesManagement.SIP_PEER + " = ");
+			sb.append(isup2sipPropertiesManagement.getSipPeer());
 			sb.append("\n");
 
 			return sb.toString();

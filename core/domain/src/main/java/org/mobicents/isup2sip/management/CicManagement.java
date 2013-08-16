@@ -55,6 +55,9 @@ public class CicManagement {
 		}
 	}
 
+	public Channel getChannelByCic(int cic) {
+		return channelByCic.get(cic);
+	}
 	public void setIdle(int cic) {
 		synchronized (synchCic) {
 			try {

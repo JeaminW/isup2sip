@@ -37,4 +37,11 @@ public interface Isup2SipPropertiesManagementMBean {
 	
 	public void setGateway(String gw);
 	
+	public String getSipPeer();
+
+	public void setSipPeer(String peer);
+
+	public String getSipIp();
+
+	public void setSipIp(String ip);
 }

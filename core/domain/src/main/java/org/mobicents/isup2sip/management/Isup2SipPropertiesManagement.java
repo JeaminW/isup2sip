@@ -43,7 +43,11 @@ public class Isup2SipPropertiesManagement implements
 	protected static final String GATEWAY = "gateway";
 	protected static final String GATEWAY_PART = "part";
 	protected static final String REMOTE_PC = "remote";
-
+	protected static final String SIP_PEER = "sipPeer";
+	protected static final String SIP_IP = "sipIp";
+	
+	public static final String ISUP_TO_SIP = "i2s";
+	public static final String SIP_TO_ISUP = "s2i";
 
 	private static final String TAB_INDENT = "\t";
 	private static final String CLASS_ATTRIBUTE = "type";
@@ -58,8 +62,22 @@ public class Isup2SipPropertiesManagement implements
 
 	private final TextBuilder persistFile = TextBuilder.newInstance();
 
+	/**
+	 * in release, there will be multiple gateways supported, 
+	 * each CIC will be mapped to some Endpoint @ some gateway
+	 */
 	private String gateway;
+	
+	/** in ISUP->SIP case, this peer will get all calls
+	 * 
+	 */
+	private String sipPeer;
+	
+	private String sipIp;
 
+	/** during developing, a single Telscale Card is shared between 2 isup2sip instances,
+	 * that are running one agains another
+	 */
 	private int gatewayPartForDebug;
 	
 	// private DataSource dataSource;
@@ -126,7 +144,25 @@ public class Isup2SipPropertiesManagement implements
 		this.gateway = gw;
 	}
 		
-	
+	@Override
+	public String getSipPeer(){
+		return this.sipPeer;
+	}
+
+	@Override
+	public void setSipPeer(String peer){
+		this.sipPeer = peer;
+	}
+		
+	@Override
+	public String getSipIp(){
+		return this.sipIp;
+	}
+
+	@Override
+	public void setSipIp(String ip){
+		this.sipIp = ip;
+	}	
 	
 	@Override
 	public String getPersistDir() {
@@ -193,8 +229,12 @@ public class Isup2SipPropertiesManagement implements
 			writer.write(this.gateway, GATEWAY,  String.class);
 			writer.write(this.gatewayPartForDebug, GATEWAY_PART,  Integer.class);
 			writer.write(this.remoteSPC, REMOTE_PC,  Integer.class);
-
+			writer.write(this.sipIp, SIP_IP,  String.class);
+			writer.write(this.sipPeer, SIP_PEER,  String.class);
+		
 			writer.close();
+			
+			logger.error("sipIp=" + this.sipIp + ", sipPeer=" + this.sipPeer); 
 		} catch (Exception e) {
 			logger.error("Error while persisting the Rule state in file", e);
 		}
@@ -216,8 +256,8 @@ public class Isup2SipPropertiesManagement implements
 			this.gateway = reader.read(GATEWAY, String.class);
 			this.gatewayPartForDebug = reader.read(GATEWAY_PART, Integer.class);
 			this.remoteSPC = reader.read(REMOTE_PC, Integer.class);
-			
-			
+			this.sipIp = reader.read(SIP_IP, String.class);
+			this.sipPeer = reader.read(SIP_PEER, String.class);
 			
 			reader.close();
 		} catch (XMLStreamException ex) {
