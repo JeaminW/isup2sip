@@ -25,9 +25,14 @@ package org.mobicents.isup2sip.sbb;
 import jain.protocol.ip.mgcp.JainMgcpEvent;
 import jain.protocol.ip.mgcp.message.CreateConnection;
 import jain.protocol.ip.mgcp.message.CreateConnectionResponse;
+import jain.protocol.ip.mgcp.message.DeleteConnection;
+import jain.protocol.ip.mgcp.message.DeleteConnectionResponse;
+import jain.protocol.ip.mgcp.message.ModifyConnection;
+import jain.protocol.ip.mgcp.message.ModifyConnectionResponse;
 import jain.protocol.ip.mgcp.message.parms.CallIdentifier;
 import jain.protocol.ip.mgcp.message.parms.ConflictingParameterException;
 import jain.protocol.ip.mgcp.message.parms.ConnectionDescriptor;
+import jain.protocol.ip.mgcp.message.parms.ConnectionIdentifier;
 import jain.protocol.ip.mgcp.message.parms.ConnectionMode;
 import jain.protocol.ip.mgcp.message.parms.EndpointIdentifier;
 import jain.protocol.ip.mgcp.message.parms.ReturnCode;
@@ -95,6 +100,7 @@ import org.mobicents.protocols.ss7.isup.message.parameter.BackwardCallIndicators
 import org.mobicents.protocols.ss7.isup.message.parameter.CalledPartyNumber;
 import org.mobicents.protocols.ss7.isup.message.parameter.CallingPartyCategory;
 import org.mobicents.protocols.ss7.isup.message.parameter.CallingPartyNumber;
+import org.mobicents.protocols.ss7.isup.message.parameter.CauseIndicators;
 import org.mobicents.protocols.ss7.isup.message.parameter.CircuitIdentificationCode;
 import org.mobicents.protocols.ss7.isup.message.parameter.ForwardCallIndicators;
 import org.mobicents.protocols.ss7.isup.message.parameter.NatureOfConnectionIndicators;
@@ -172,36 +178,8 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 			
 			String sdp = new String(sipEvent.getRequest().getRawContent());
 			
-			CallIdentifier mgcpCallID = mgcpProvider.getUniqueCallIdentifier();
-			this.setMgcpCallIdentifier(mgcpCallID.toString());
-			EndpointIdentifier endpointID = new EndpointIdentifier(channel.getEndpointId(),channel.getGatewayAddress());
-			CreateConnection createConnection = new CreateConnection(this,
-					mgcpCallID, endpointID, ConnectionMode.SendRecv);
-			try {
-				createConnection.setRemoteConnectionDescriptor(new ConnectionDescriptor(sdp));
-			} catch (ConflictingParameterException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			final int txID = mgcpProvider.getUniqueTransactionHandler();
-			createConnection.setTransactionHandle(txID);
+			sendCRCX(sdp);
 			
-			MgcpConnectionActivity connectionActivity = null;
-			try {
-				connectionActivity = mgcpProvider.getConnectionActivity(txID, endpointID);
-				ActivityContextInterface epnAci = mgcpActivityContestInterfaceFactory.getActivityContextInterface(connectionActivity);
-				epnAci.attach(sbbLocalObject);
-			} catch (FactoryException ex) {
-				ex.printStackTrace();
-			} catch (NullPointerException ex) {
-				ex.printStackTrace();
-			} catch (UnrecognizedActivityException ex) {
-				ex.printStackTrace();
-			}
-			
-			mgcpProvider.sendMgcpEvents(new JainMgcpEvent[] { createConnection });
-			tracer.info("SIP->ISUP, CRCX sent; ep ID=" + endpointID + " sbb=" + sbbLocalObject);
-
 			// with a proper CRCX_RESP, sent IAM..
 			
 		} catch (Throwable e) {
@@ -234,30 +212,7 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 			tracer.warning("CIC is not idle");	
 		}
 		
-		CallIdentifier mgcpCallID = mgcpProvider.getUniqueCallIdentifier();
-		this.setMgcpCallIdentifier(mgcpCallID.toString());
-		EndpointIdentifier endpointID = new EndpointIdentifier(channel.getEndpointId(),channel.getGatewayAddress());
-		CreateConnection createConnection = new CreateConnection(this,
-				mgcpCallID, endpointID, ConnectionMode.SendRecv);
-		
-		final int txID = mgcpProvider.getUniqueTransactionHandler();
-		createConnection.setTransactionHandle(txID);
-		
-		MgcpConnectionActivity connectionActivity = null;
-		try {
-			connectionActivity = mgcpProvider.getConnectionActivity(txID, endpointID);
-			ActivityContextInterface epnAci = mgcpActivityContestInterfaceFactory.getActivityContextInterface(connectionActivity);
-			epnAci.attach(sbbLocalObject);
-		} catch (FactoryException ex) {
-			ex.printStackTrace();
-		} catch (NullPointerException ex) {
-			ex.printStackTrace();
-		} catch (UnrecognizedActivityException ex) {
-			ex.printStackTrace();
-		}
-		
-		mgcpProvider.sendMgcpEvents(new JainMgcpEvent[] { createConnection });
-		tracer.info("ISUP->SIP, CRCX sent; ep ID=" + endpointID + " sbb=" + sbbLocalObject);	
+		sendCRCX(null);
 	}
 	
 	
@@ -285,8 +240,9 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 		tracer.warning("isup REL " + rel.getCircuitIdentificationCode().getCIC());
 		showMe();
 
-		ReleaseCompleteMessage msg = isupMessageFactory.createRLC(this.getCicValue());
-        msg.setSls(this.getCicValue());
+		final int cic = this.getCicValue();
+		ReleaseCompleteMessage msg = isupMessageFactory.createRLC(cic);
+        msg.setSls(cic);
 
         try {
         	// just to play with stack, send smth
@@ -296,6 +252,7 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
         		e.printStackTrace();
         }
 
+        sendDLCX();
 	}
 	
 	public void onRLC(ReleaseCompleteMessage rlc, ActivityContextInterface aci){
@@ -317,10 +274,12 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 		}
 	}
 
-	public void onModifyConnectionResponse(CreateConnectionResponse event,
-			ActivityContextInterface aci) {}
+	public void onModifyConnectionResponse(ModifyConnectionResponse event,
+			ActivityContextInterface aci) {
+		tracer.warning("MDCX Resp, Isup->Sip ?");
+	}
 
-	public void onDeleteConnectionResponse(CreateConnectionResponse event,
+	public void onDeleteConnectionResponse(DeleteConnectionResponse event,
 				ActivityContextInterface aci) {}
 
 	
@@ -335,41 +294,63 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 	
 	
 
-	public void onReInviteEvent(RequestEvent sipEvent, ActivityContextInterface aci) {}
-
-	// Responses
-	public void on1xxResponse(ResponseEvent event, ActivityContextInterface aci) {
-		if (event.getResponse().getStatusCode() == Response.TRYING) {
-			// those are not forwarded to the other dialog
-			return;
+	public void onReInviteEvent(RequestEvent sipEvent, ActivityContextInterface aci) {
+		String sdp = new String(sipEvent.getRequest().getRawContent());
+		if( ! sdp.isEmpty()){
+			sendMDCX(sdp);
 		}
-		processResponse(event, aci);
+		
+		sipReplyToRequestEvent(sipEvent, Response.OK);
+		
 	}
 
-	public void on2xxResponse(ResponseEvent event, ActivityContextInterface aci) {
-		final CSeqHeader cseq = (CSeqHeader) event.getResponse().getHeader(
+	// Responses
+	public void on1xxResponse(ResponseEvent sipEvent, ActivityContextInterface aci) {
+		tracer.severe("on1xxResp: " + sipEvent);
+		String sdp = new String(sipEvent.getResponse().getRawContent());
+		if( sdp != null){
+			sendMDCX(sdp);
+		}
+	}
+
+	public void on2xxResponse(ResponseEvent sipEvent, ActivityContextInterface aci) {
+		tracer.severe("on2xxResp:" + sipEvent);
+		final CSeqHeader cseq = (CSeqHeader) sipEvent.getResponse().getHeader(
 				CSeqHeader.NAME);
 		if (cseq.getMethod().equals(Request.INVITE)) {
 			// lets ack it ourselves to avoid UAS retransmissions due to
 			// forwarding of this response and further UAC Ack
 			// note that the app does not handles UAC ACKs
 			try {
-				final Request ack = event.getDialog().createAck(
+				final Request ack = sipEvent.getDialog().createAck(
 						cseq.getSeqNumber());
-				event.getDialog().sendAck(ack);
+				sipEvent.getDialog().sendAck(ack);
 			} catch (Exception e) {
 				tracer.severe("Unable to ack INVITE's 200 ok from UAS", e);
 			}
 		} else if (cseq.getMethod().equals(Request.BYE)
 				|| cseq.getMethod().equals(Request.CANCEL)) {
-			// not forwarded to the other dialog
 			return;
 		}
-		processResponse(event, aci);
 	}
 
 	public void onBye(RequestEvent event, ActivityContextInterface aci) {
+		final int cic = this.getCicValue();
+		ReleaseMessage msg = isupMessageFactory.createREL(cic);
+		msg.setSls(cic);
+		CauseIndicators cause = isupParameterFactory.createCauseIndicators();
+		cause.setCauseValue(CauseIndicators._CV_ALL_CLEAR);
+		msg.setCauseIndicators(cause);
 
+		try {
+			// just to play with stack, send smth
+		   	isupProvider.sendMessage(msg,remoteSPC);
+		} catch (Exception e) {
+        	// TODO Auto-generated catch block
+		   	e.printStackTrace();
+		}
+
+		sendDLCX();
 	}
 
 	public void onCancel(CancelRequestEvent event, ActivityContextInterface aci) {
@@ -397,14 +378,6 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 		}
 	}
 
-	private void processResponse(ResponseEvent event,
-			ActivityContextInterface aci) {
-		try {
-
-		} catch (Exception e) {
-			tracer.severe(e.getMessage(), e);
-		}
-	}
 	
 	
 
@@ -652,7 +625,7 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 				// just send SIP INVITE
 				
 				try {
-					// create headers needed to create a out-of-dialog request
+					// create headers needed 
 					AddressFactory addressFactory = sipProvider.getAddressFactory();
 					
 					Address fromNameAddress = addressFactory
@@ -685,6 +658,10 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 					// send a message to each contact of the target resource
 					MessageFactory messageFactory = sipProvider.getMessageFactory();
 
+					
+					
+					
+					
 					try {
 							// create request uri
 							tracer.warning("own SIP ip is " + isup2SipPropertiesManagement.getSipIp() + 
@@ -706,10 +683,16 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 									toHeader, viaHeaders, maxForwardsHeader,
 									contentTypeHeader, sdp);
 							invite.setHeader(contactHeader);
-							
+					
 							// create client transaction and send request
 							ClientTransaction clientTransaction = sipProvider
 									.getNewClientTransaction(invite);
+							
+							final DialogActivity sipDialog = (DialogActivity) sipProvider.getNewDialog(clientTransaction);
+							final ActivityContextInterface sipDialogACI = sipActivityContextInterfaceFactory.getActivityContextInterface(sipDialog);
+							final SbbLocalObject sbbLocalObject = sbbContext.getSbbLocalObject();
+							sipDialogACI.attach(sbbLocalObject);
+							
 							clientTransaction.sendRequest();
 					} catch (Throwable f) {
 							tracer.severe("Failed to create and send message", f);
@@ -723,5 +706,106 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 		}
 	}
 
+	void sendCRCX(String sdp){
+		
+		final SbbLocalObject sbbLocalObject = sbbContext.getSbbLocalObject();
+		final int cic = this.getCicValue();
+		final Channel channel = cicManagement.getChannelByCic(cic);
+		
+		CallIdentifier mgcpCallID = mgcpProvider.getUniqueCallIdentifier();
+		this.setMgcpCallIdentifier(mgcpCallID.toString());
+		EndpointIdentifier endpointID = new EndpointIdentifier(channel.getEndpointId(),channel.getGatewayAddress());
+		CreateConnection createConnection = new CreateConnection(this,
+				mgcpCallID, endpointID, ConnectionMode.SendRecv);
+		if(sdp !=null)
+			try {
+				createConnection.setRemoteConnectionDescriptor(new ConnectionDescriptor(sdp));
+			} catch (ConflictingParameterException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		final int txID = mgcpProvider.getUniqueTransactionHandler();
+		createConnection.setTransactionHandle(txID);
+		
+		MgcpConnectionActivity connectionActivity = null;
+		try {
+			connectionActivity = mgcpProvider.getConnectionActivity(txID, endpointID);
+			ActivityContextInterface epnAci = mgcpActivityContestInterfaceFactory.getActivityContextInterface(connectionActivity);
+			epnAci.attach(sbbLocalObject);
+		} catch (FactoryException ex) {
+			ex.printStackTrace();
+		} catch (NullPointerException ex) {
+			ex.printStackTrace();
+		} catch (UnrecognizedActivityException ex) {
+			ex.printStackTrace();
+		}
+		
+		mgcpProvider.sendMgcpEvents(new JainMgcpEvent[] { createConnection });
+		tracer.info("CRCX sent; ep ID=" + endpointID + " sbb=" + sbbLocalObject);
+	}
 	
+	void sendMDCX(String sdp){
+		
+		final SbbLocalObject sbbLocalObject = sbbContext.getSbbLocalObject();
+		final int cic = this.getCicValue();
+		final Channel channel = cicManagement.getChannelByCic(cic);
+		CallIdentifier mgcpCallID = new CallIdentifier(this.getMgcpCallIdentifier());
+		this.setMgcpCallIdentifier(mgcpCallID.toString());
+		EndpointIdentifier endpointID = new EndpointIdentifier(channel.getEndpointId(),channel.getGatewayAddress());
+		ConnectionIdentifier connectionIdentifier = new ConnectionIdentifier(this.getMgcpConnectionIdentifier());
+		ModifyConnection modifyConnection = new ModifyConnection(this, mgcpCallID, endpointID,connectionIdentifier);
+		try {
+			modifyConnection.setRemoteConnectionDescriptor(new ConnectionDescriptor(sdp));
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		final int txID = mgcpProvider.getUniqueTransactionHandler();
+		modifyConnection.setTransactionHandle(txID);
+		
+		MgcpConnectionActivity connectionActivity = null;
+		try {
+			connectionActivity = mgcpProvider.getConnectionActivity(txID, endpointID);
+			ActivityContextInterface epnAci = mgcpActivityContestInterfaceFactory.getActivityContextInterface(connectionActivity);
+			epnAci.attach(sbbLocalObject);
+		} catch (FactoryException ex) {
+			ex.printStackTrace();
+		} catch (NullPointerException ex) {
+			ex.printStackTrace();
+		} catch (UnrecognizedActivityException ex) {
+			ex.printStackTrace();
+		}
+		
+		mgcpProvider.sendMgcpEvents(new JainMgcpEvent[] { modifyConnection });
+		tracer.info("DLCX sent; ep ID=" + endpointID + " sbb=" + sbbLocalObject);
+		
+	}
+	
+	void sendDLCX(){
+        
+		final SbbLocalObject sbbLocalObject = sbbContext.getSbbLocalObject();
+		final Channel channel = cicManagement.getChannelByCic(this.getCicValue());
+        CallIdentifier mgcpCallID = new CallIdentifier(this.getMgcpCallIdentifier());
+		EndpointIdentifier endpointID = new EndpointIdentifier(channel.getEndpointId(),channel.getGatewayAddress());
+		DeleteConnection deleteConnection = new DeleteConnection(this, mgcpCallID, endpointID);
+		final int txID = mgcpProvider.getUniqueTransactionHandler();
+		deleteConnection.setTransactionHandle(txID);
+		
+		MgcpConnectionActivity connectionActivity = null;
+		try {
+			connectionActivity = mgcpProvider.getConnectionActivity(txID, endpointID);
+			ActivityContextInterface epnAci = mgcpActivityContestInterfaceFactory.getActivityContextInterface(connectionActivity);
+			epnAci.attach(sbbLocalObject);
+		} catch (FactoryException ex) {
+			ex.printStackTrace();
+		} catch (NullPointerException ex) {
+			ex.printStackTrace();
+		} catch (UnrecognizedActivityException ex) {
+			ex.printStackTrace();
+		}
+		
+		mgcpProvider.sendMgcpEvents(new JainMgcpEvent[] { deleteConnection });
+		tracer.info("DLCX sent; ep ID=" + endpointID + " sbb=" + sbbLocalObject);
+
+	}
 }
