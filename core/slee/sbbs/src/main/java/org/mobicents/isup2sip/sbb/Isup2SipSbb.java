@@ -45,6 +45,7 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.sip.ClientTransaction;
+import javax.sip.Dialog;
 import javax.sip.DialogState;
 import javax.sip.InvalidArgumentException;
 import javax.sip.ListeningPoint;
@@ -219,16 +220,36 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 	
 	
 	public void onANM(AnswerMessage anm, ActivityContextInterface aci){
-		tracer.warning("isup ANM");
+		tracer.info("isup ANM");
 		showMe();
 		
-		sipReplyToRequestEvent(this.getSipEvent(), Response.OK);
+		final RequestEvent sipEvent = this.getSipEvent();
+		Response response = null;
+		try {
+			response = messageFactory.createResponse(Response.OK, 
+					sipEvent.getRequest());
+			AddressFactory addressFactory = sipProvider.getAddressFactory();
+			Address contactAddress = addressFactory
+					.createAddress("sip:" + isup2SipPropertiesManagement.getSipIp());
+			ContactHeader contactHeader = headerFactory.createContactHeader(contactAddress);
+			response.addHeader(contactHeader);
+			
+			sipEvent.getServerTransaction().sendResponse(response);
+			
+		} catch (ParseException ex) {
+			tracer.warning("ParseException while trying to create 200_OK Response", ex);
+		} catch (SipException ex) {
+			tracer.warning("SipException while trying to create 200_OK Response", ex);
+		} catch (InvalidArgumentException ex) {
+			tracer.warning("InvalidArgumentException while trying to create 200_OK Response", ex);
+		}
+		
 		
 		cicManagement.setAnswered(this.getCicValue());
 	}
 	
 	public void onACM(AddressCompleteMessage acm, ActivityContextInterface aci){
-		tracer.warning("isup ACM " + acm.getCircuitIdentificationCode().getCIC());
+		tracer.info("isup ACM " + acm.getCircuitIdentificationCode().getCIC());
 		showMe();
 		
 		sipReplyToRequestEvent(this.getSipEvent(), Response.RINGING);
@@ -237,8 +258,22 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 	}	
 	
 	public void onREL(ReleaseMessage rel, ActivityContextInterface aci){
-		tracer.warning("isup REL " + rel.getCircuitIdentificationCode().getCIC());
+		tracer.info("isup REL " + rel.getCircuitIdentificationCode().getCIC() + 
+				", SIP event " + this.getSipEvent());
 		showMe();
+		
+		try{ 
+			Request byeRequest = this.getSipEvent().getDialog().createRequest(Request.BYE);
+			tracer.info("sending SIP bye " + byeRequest);
+			ClientTransaction ct = sipProvider.getNewClientTransaction(byeRequest);
+			this.getSipEvent().getDialog().sendRequest(ct);
+
+//			releaseState();
+
+		} catch (Exception e) {
+        	// TODO Auto-generated catch block
+		   	e.printStackTrace();
+		}
 
 		final int cic = this.getCicValue();
 		ReleaseCompleteMessage msg = isupMessageFactory.createRLC(cic);
@@ -254,7 +289,50 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 
         sendDLCX();
 	}
+/*
+ 	private void releaseState() {
+
+		ActivityContextInterface[] activities = getSbbContext().getActivities();
+		SbbLocalObject sbbLocalObject = getSbbContext().getSbbLocalObject();
+
+		MgcpEndpointActivity mea = getEndpointActivity("ivr");
+		if(mea!=null)
+		{
+			//empty RQNT, this is requiered to flush data.
+			sendRQNT(null,false,false);
+		}
 	
+		for (ActivityContextInterface attachedAci : activities) {
+			if (attachedAci.getActivity() instanceof Dialog) {
+				attachedAci.detach(sbbLocalObject);
+				
+			}
+			if (attachedAci.getActivity() instanceof MgcpConnectionActivity) {
+				attachedAci.detach(sbbLocalObject);
+	
+
+			}
+			
+			if ( (attachedAci.getActivity() instanceof MgcpEndpointActivity)) {
+				attachedAci.detach(sbbLocalObject);
+	
+				MgcpEndpointActivity mgcpEndpoint = (MgcpEndpointActivity) attachedAci
+						.getActivity();
+				DeleteConnection deleteConnection = new DeleteConnection(this,
+						mgcpEndpoint.getEndpointIdentifier());
+				deleteConnection.setCallIdentifier(this.getCallIdentifier());
+
+				deleteConnection.setTransactionHandle(mgcpProvider.getUniqueTransactionHandler());
+				mgcpProvider.sendMgcpEvents(
+						new JainMgcpEvent[] { deleteConnection });
+				log.info("Delete connections: \n"+deleteConnection);
+		
+			}
+
+		}
+		this.setCallIdentifier(null);
+	}	
+ */
 	public void onRLC(ReleaseCompleteMessage rlc, ActivityContextInterface aci){
 		tracer.warning("isup RLC " + rlc.getCircuitIdentificationCode().getCIC());
 		showMe();
@@ -265,6 +343,8 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 	public void onCreateConnectionResponse(CreateConnectionResponse event,
 			ActivityContextInterface aci) {
 
+		this.setMgcpConnectionIdentifier(event.getConnectionIdentifier().toString());
+		
 		if(this.getConversionType().equals(Isup2SipPropertiesManagement.SIP_TO_ISUP))
 			onCreateConnectionResponseSipToIsup(event,aci);
 		else if(this.getConversionType().equals(Isup2SipPropertiesManagement.ISUP_TO_SIP))
@@ -276,7 +356,7 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 
 	public void onModifyConnectionResponse(ModifyConnectionResponse event,
 			ActivityContextInterface aci) {
-		tracer.warning("MDCX Resp, Isup->Sip ?");
+		tracer.warning("MDCX Resp, Isup->Sip");
 	}
 
 	public void onDeleteConnectionResponse(DeleteConnectionResponse event,
@@ -295,11 +375,14 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 	
 
 	public void onReInviteEvent(RequestEvent sipEvent, ActivityContextInterface aci) {
-		String sdp = new String(sipEvent.getRequest().getRawContent());
-		if( ! sdp.isEmpty()){
+		tracer.severe("on Re-Invite: " + sipEvent);
+		try{
+			String sdp = new String(sipEvent.getRequest().getRawContent());
 			sendMDCX(sdp);
 		}
-		
+		catch (Exception e){
+			tracer.severe("exception while fetching sdp");
+		}		
 		sipReplyToRequestEvent(sipEvent, Response.OK);
 		
 	}
@@ -307,9 +390,12 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 	// Responses
 	public void on1xxResponse(ResponseEvent sipEvent, ActivityContextInterface aci) {
 		tracer.severe("on1xxResp: " + sipEvent);
-		String sdp = new String(sipEvent.getResponse().getRawContent());
-		if( sdp != null){
+		try{
+			String sdp = new String(sipEvent.getResponse().getRawContent());
 			sendMDCX(sdp);
+		}
+		catch (Exception e){
+			tracer.severe("exception while fetching sdp");
 		}
 	}
 
@@ -317,17 +403,26 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 		tracer.severe("on2xxResp:" + sipEvent);
 		final CSeqHeader cseq = (CSeqHeader) sipEvent.getResponse().getHeader(
 				CSeqHeader.NAME);
+		tracer.severe("cseq hdr:" + sipEvent + " ; method=" + cseq.getMethod());
 		if (cseq.getMethod().equals(Request.INVITE)) {
-			// lets ack it ourselves to avoid UAS retransmissions due to
-			// forwarding of this response and further UAC Ack
-			// note that the app does not handles UAC ACKs
 			try {
 				final Request ack = sipEvent.getDialog().createAck(
-						cseq.getSeqNumber());
+						cseq.getSeqNumber());		
+						try{
+							String sdp = new String(sipEvent.getResponse().getRawContent());
+							tracer.severe("on2xx: sdp is " + sdp);
+							sendMDCX(sdp);
+						}
+						catch (Exception e){
+							tracer.severe("on2xx: exception while fetching sdp");
+						}
 				sipEvent.getDialog().sendAck(ack);
 			} catch (Exception e) {
-				tracer.severe("Unable to ack INVITE's 200 ok from UAS", e);
+				tracer.severe("Unable to ack INVITE's 200 ok", e);
 			}
+			
+			sendANM();
+			
 		} else if (cseq.getMethod().equals(Request.BYE)
 				|| cseq.getMethod().equals(Request.CANCEL)) {
 			return;
@@ -335,6 +430,16 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 	}
 
 	public void onBye(RequestEvent event, ActivityContextInterface aci) {
+		
+		try{
+			Response response = messageFactory.createResponse(Response.OK, event.getRequest());
+        	event.getServerTransaction().sendResponse(response);
+		} catch (Exception e) {
+        	// TODO Auto-generated catch block
+		   	e.printStackTrace();
+		}
+ 
+        
 		final int cic = this.getCicValue();
 		ReleaseMessage msg = isupMessageFactory.createREL(cic);
 		msg.setSls(cic);
@@ -604,17 +709,8 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 				 * (2) SIP: send INVITE
 				 */
 
-				AddressCompleteMessage msg = isupMessageFactory.createACM(this.getCicValue());
-				BackwardCallIndicators bci = isupParameterFactory.createBackwardCallIndicators();
-				msg.setBackwardCallIndicators(bci);
-		        msg.setSls(this.getCicValue());
-		        try {
-		        	// just to play with stack, send smth
-		        	isupProvider.sendMessage(msg,remoteSPC);
-		            } catch (Exception e) {
-		            	// TODO Auto-generated catch block
-		        		e.printStackTrace();
-		        }
+				sendACM();
+				
 		        
 		        
 				ContentTypeHeader contentType = null;
@@ -655,7 +751,6 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 					MaxForwardsHeader maxForwardsHeader = headerFactory
 							.createMaxForwardsHeader(70);
 					
-					// send a message to each contact of the target resource
 					MessageFactory messageFactory = sipProvider.getMessageFactory();
 
 					
@@ -694,6 +789,8 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 							sipDialogACI.attach(sbbLocalObject);
 							
 							clientTransaction.sendRequest();
+							
+							//this.setSipEvent(sipEvent);
 					} catch (Throwable f) {
 							tracer.severe("Failed to create and send message", f);
 					}
@@ -706,6 +803,43 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 		}
 	}
 
+	
+// ISUP functions
+	
+	void sendACM(){
+
+		tracer.info("sending ACM");
+		
+		AddressCompleteMessage msg = isupMessageFactory.createACM(this.getCicValue());
+		BackwardCallIndicators bci = isupParameterFactory.createBackwardCallIndicators();
+		msg.setBackwardCallIndicators(bci);
+        msg.setSls(this.getCicValue());
+        try {
+        	// just to play with stack, send smth
+        	isupProvider.sendMessage(msg,remoteSPC);
+            } catch (Exception e) {
+            	// TODO Auto-generated catch block
+        		e.printStackTrace();
+        }
+	}
+	
+	void sendANM(){
+		
+		tracer.info("sending ANM");
+
+		AnswerMessage msg = isupMessageFactory.createANM(this.getCicValue());
+		msg.setSls(this.getCicValue());
+        try {
+        	// just to play with stack, send smth
+        	isupProvider.sendMessage(msg,remoteSPC);
+            } catch (Exception e) {
+            	// TODO Auto-generated catch block
+        		e.printStackTrace();
+        }
+		
+	}
+// MGCP functions
+	
 	void sendCRCX(String sdp){
 		
 		final SbbLocalObject sbbLocalObject = sbbContext.getSbbLocalObject();
@@ -745,7 +879,7 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 	}
 	
 	void sendMDCX(String sdp){
-		
+		tracer.info("preparing MDCX");		
 		final SbbLocalObject sbbLocalObject = sbbContext.getSbbLocalObject();
 		final int cic = this.getCicValue();
 		final Channel channel = cicManagement.getChannelByCic(cic);
