@@ -24,8 +24,8 @@ public class CicManagement {
 		for (int cic = 1; cic < 31; cic++) {
 			if(cic == 16) continue;
 			Channel ch;
-			if(part!=0)	ch = new Channel(gateway,Integer.toString(cic + 32), cic);
-			else 		ch = new Channel(gateway,Integer.toString(cic), cic);
+			if(part!=0)	ch = new Channel(gateway,Integer.toHexString(cic + 32), cic);
+			else 		ch = new Channel(gateway,Integer.toHexString(cic), cic);
 			channelByCic.put(cic, ch);
 
 			// TODO: in fact, need to reset circuits
