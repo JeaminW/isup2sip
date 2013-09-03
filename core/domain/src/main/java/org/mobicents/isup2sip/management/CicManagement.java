@@ -91,4 +91,13 @@ public class CicManagement {
 			}
 		}
 	}
+	
+	public void setUnknown(int cic) {
+		synchronized (synchCic) {
+			try {
+				channelByCic.get(cic).setState(State.UNKNOWN);
+			} catch (Exception e) {
+			}
+		}		
+	}
 }
