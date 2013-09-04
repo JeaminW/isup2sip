@@ -56,6 +56,10 @@
 								</goals>
 								<configuration>
 									<tasks>
+<echo> +++++++++++++++++++++++++++ deploy +++++++++++++++++++++++ </echo>
+<echo>TO: "${jboss.home}/lib"</echo>
+<echo>FILE: "${project.build.directory}/${build.finalName}.jar"</echo>
+<echo> ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ </echo>
 										<copy todir="${jboss.home}/lib"
 											file="${project.build.directory}/${build.finalName}.jar" />
 									</tasks>

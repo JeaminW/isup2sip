@@ -1,0 +1,19 @@
+Name
+	isup2sip set remote
+	
+SYNOPSIS
+	isup2sip set remote <spc>
+	
+DESCRIPTION
+	Command defines SPC of another end of SS7 link
+	
+PARAMETERS
+	spc			 - spc in decimal
+	
+EXAMPLES
+	isup2sip set remote 222
+	
+SEE ALSO
+	isup2sip get remote
+
+

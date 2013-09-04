@@ -1,0 +1,23 @@
+Name
+	isup2sip get part
+	
+SYNOPSIS
+	isup2sip get part
+	
+DESCRIPTION
+	Returns a part of Telscale SS7 Card used as Media Gateway
+	This is a TEMPORARY COMMAND, to loop E1 within a single Telscale SS7 Card.
+	In this case isup2sip service interacts with a single gateway, with 1 E1
+	In fact, it influences at translation of ISUP CIC to MGCP endpoint
+	
+RETURN VALUE
+	part			 - either 0(default) or 1
+	    if part equals to 0 (default), cic 1 is endpoint 1@<gatewayIp>, that is timeslot #1 port #0,
+	    if part is 1, cic 1 is mapped to 33@<gatewayIp>, that is timeslot #1 port #1 etc
+
+EXAMPLES
+	isup2sip get part
+	
+SEE ALSO
+	isup2sip set part, isup2sip get gateway
+

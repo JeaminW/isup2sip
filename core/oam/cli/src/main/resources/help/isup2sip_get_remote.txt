@@ -1,0 +1,17 @@
+Name
+	isup2sip get remote
+	
+SYNOPSIS
+	isup2sip get remote
+	
+DESCRIPTION
+	Command returns SPC of another end of SS7 link
+	
+	
+EXAMPLES
+	isup2sip get remote
+	
+SEE ALSO
+	isup2sip set remote
+
+

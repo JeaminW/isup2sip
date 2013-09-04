@@ -1,0 +1,19 @@
+Name
+	isup2sip set sipPeer
+	
+SYNOPSIS
+	isup2sip set sipPeer <url>
+	
+DESCRIPTION
+	Command sets URL for SIP server, to be used to deliver calls from ISUP
+	
+PARAMETERS
+	url			 - either IP address or IP:PORT of SIP server
+	
+EXAMPLES
+	isup2sip set sipPeer 192.168.1.97:5060
+	
+SEE ALSO
+	isup2sip get sipPeer
+
+

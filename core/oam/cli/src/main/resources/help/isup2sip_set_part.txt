@@ -1,0 +1,23 @@
+Name
+	isup2sip set part
+	
+SYNOPSIS
+	isup2sip set part <partNumber>
+	
+DESCRIPTION
+	This is a TEMPORARY COMMAND, to loop E1 within a single Telscale SS7 Card.
+	In this case isup2sip service interacts with a single gateway, with 1 E1
+	In fact, it influences at translation of ISUP CIC to MGCP endpoint
+	
+	
+PARAMETERS
+	partNumber		 - either 0(default) or 1
+	    if part equals to 0 (default), cic 1 is endpoint 1@<gatewayIp>, that is timeslot #1 port #0,
+	    if part is 1, cic 1 is mapped to 33@<gatewayIp>, that is timeslot #1 port #1 etc
+
+EXAMPLES
+	isup2sip set part 1
+	
+SEE ALSO
+	isup2sip get, isup2sip set gateway
+

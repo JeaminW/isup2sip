@@ -1,0 +1,15 @@
+Name
+	isup2sip get
+	
+SYNOPSIS
+	isup2sip get
+	
+DESCRIPTION
+	Displays current parameters
+	
+EXAMPLES
+	isup2sip get
+	
+SEE ALSO
+	isup2sip get gateway, isup2sip get part, isup2sip get sipPeer, isup2sip get remote
+

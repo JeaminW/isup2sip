@@ -1,0 +1,19 @@
+Name
+	isup2sip set gateway
+	
+SYNOPSIS
+	isup2sip set gateway <mediaGateway>
+	
+DESCRIPTION
+	This is a TEMPORARY COMMAND: as soon as multiple media gateways will be supported,
+	syntax will be changed
+	
+PARAMETERS
+	mediaGateway		 - either IP or IP:PORT of MGCP GW
+		endpoints are enumerated depending on PART value (see isup2sip set part)
+EXAMPLES
+	isup2sip set mediaGateway 192.168.1.13:2427
+	
+SEE ALSO
+	isup2sip get gateway, isup2sip set part
+

@@ -117,7 +117,7 @@
 	<!-- ISUP2SIP -->
 	<!-- Isup2SipManagement is managing the all isup2sip server commands -->
 	<!-- ==================================================================== -->
-	<bean name="ServiceManagement" class="org.mobicents.isup2sip.management.Isup2SipManagement">
+	<bean name="Isup2SipManagement" class="org.mobicents.isup2sip.management.Isup2SipManagement">
 		<constructor>
 			<parameter>Isup2SipManagement</parameter>
 		</constructor>

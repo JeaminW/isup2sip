@@ -1,0 +1,16 @@
+Name
+	isup2sip get sipPeer
+	
+SYNOPSIS
+	isup2sip set sipPeer <url>
+	
+DESCRIPTION
+	Command returns URL for SIP server, to be used to deliver calls from ISUP
+	
+EXAMPLES
+	isup2sip get sipPeer
+	
+SEE ALSO
+	isup2sip set sipPeer
+
+
