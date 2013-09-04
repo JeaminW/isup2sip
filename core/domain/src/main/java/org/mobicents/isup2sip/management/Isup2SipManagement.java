@@ -19,8 +19,12 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.mobicents.isup2sip.management;
 
+package org.mobicents.isup2sip.management;
+/**
+ * @author dmitri soloviev
+ * 
+ */
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
@@ -33,6 +37,9 @@ public class Isup2SipManagement {
 			.getLogger(Isup2SipManagement.class);
 
 	public static final String JMX_DOMAIN = "org.mobicents.isup2sip";
+	public static final String CONTEXT = "java:comp/env";
+	public static final String MGCP_PROVIDER = "slee/resources/jainmgcp/2.0/provider";
+	public static final String MGCP_ACI_FACTORY = "slee/resources/jainmgcp/2.0/acifactory";
 
 	protected static final String SERVICE_PERSIST_DIR_KEY = "isup2sip.persist.dir";
 	protected static final String USER_DIR_KEY = "user.dir";

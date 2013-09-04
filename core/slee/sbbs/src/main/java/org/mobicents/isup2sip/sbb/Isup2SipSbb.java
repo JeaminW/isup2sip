@@ -22,7 +22,6 @@
 
 package org.mobicents.isup2sip.sbb;
 
-//import jain.protocol.ip.mgcp.JainMgcpCommandEvent;
 import jain.protocol.ip.mgcp.JainMgcpEvent;
 import jain.protocol.ip.mgcp.message.CreateConnection;
 import jain.protocol.ip.mgcp.message.CreateConnectionResponse;
@@ -90,6 +89,7 @@ import net.java.slee.resource.sip.SleeSipProvider;
 
 import org.mobicents.isup2sip.management.Channel;
 import org.mobicents.isup2sip.management.CicManagement;
+import org.mobicents.isup2sip.management.Isup2SipManagement;
 import org.mobicents.isup2sip.management.Isup2SipPropertiesManagement;
 //import org.mobicents.isup2sip.sbb.CauseCodeMapping;
 import org.mobicents.isup2sip.sbb.CodingShemes;
@@ -165,7 +165,7 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 		// ACI is the server transaction activity
 		try {
 			// try to allocate CIC
-			final Channel channel = cicManagement.getIdleChannel();
+			final Channel channel = cicManagement.allocateIdleChannel();
 			if(channel == null) {
 				tracer.warning("Failed to allocate CIC for Invite");
 				sipReplyToRequestEvent(sipEvent, Response.SERVICE_UNAVAILABLE);
@@ -504,7 +504,7 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 		}
 		try {
 			tracer.severe("trying to start!!!!");
-			final Context ctx = (Context) new InitialContext().lookup("java:comp/env");
+			final Context ctx = (Context) new InitialContext().lookup(Isup2SipManagement.CONTEXT);
 	
 			// SIP
 			sipActivityContextInterfaceFactory = (SipActivityContextInterfaceFactory) ctx.lookup("slee/resources/jainsip/1.2/acifactory");
@@ -514,8 +514,8 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 			messageFactory = sipProvider.getMessageFactory();
 			
 			// MGCP
-			mgcpProvider = (JainMgcpProvider) ctx.lookup("slee/resources/jainmgcp/2.0/provider");
-			mgcpActivityContestInterfaceFactory = (MgcpActivityContextInterfaceFactory) ctx.lookup("slee/resources/jainmgcp/2.0/acifactory");
+			mgcpProvider = (JainMgcpProvider) ctx.lookup(Isup2SipManagement.MGCP_PROVIDER);
+			mgcpActivityContestInterfaceFactory = (MgcpActivityContextInterfaceFactory) ctx.lookup(Isup2SipManagement.MGCP_ACI_FACTORY);
 			
 			// ISUP
             isupProvider = (RAISUPProvider) ctx.lookup("slee/resources/isup/1.0/provider");
@@ -984,7 +984,7 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 		SbbLocalObject sbbLocalObject = sbbContext.getSbbLocalObject();
 	
 		for (ActivityContextInterface attachedAci : activities) {
-			tracer.severe("activity " + attachedAci.getActivity());
+//			tracer.severe("activity " + attachedAci.getActivity());
 			attachedAci.detach(sbbLocalObject);
 		}
 	}	

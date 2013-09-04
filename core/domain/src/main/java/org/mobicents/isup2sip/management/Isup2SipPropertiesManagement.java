@@ -33,7 +33,10 @@ import javolution.xml.XMLObjectWriter;
 import javolution.xml.stream.XMLStreamException;
 
 import org.apache.log4j.Logger;
-
+/**
+ * @author dmitri soloviev
+ * 
+ */
 public class Isup2SipPropertiesManagement implements
 		Isup2SipPropertiesManagementMBean {
 

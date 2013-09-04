@@ -15,6 +15,20 @@
 	<name>Core : Domain</name>
 
 	<dependencies>
+
+		<!-- needed to fire RSIP -->
+		<dependency>
+			<groupId>org.mobicents.servers.jainslee.api</groupId>
+			<artifactId>jain-slee-11-ext</artifactId>
+			<version>${mobicents.core.ext.version}</version>
+		</dependency>
+		<dependency>
+			<artifactId>mgcp-ratype</artifactId>
+			<groupId>org.mobicents.resources</groupId>
+			<version>${mobicents.resources.mgcp.version}</version>
+		</dependency>
+		<!-- up to this -->
+
 		<dependency>
 			<artifactId>shell-server-api</artifactId>
 			<groupId>org.mobicents.protocols.ss7.management</groupId>
