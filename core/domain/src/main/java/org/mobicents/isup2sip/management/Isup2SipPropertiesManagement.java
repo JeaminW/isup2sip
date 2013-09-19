@@ -56,6 +56,7 @@ public class Isup2SipPropertiesManagement implements
 	private static final String CLASS_ATTRIBUTE = "type";
 	private static final XMLBinding binding = new XMLBinding();
 	private static final String PERSIST_FILE_NAME = "isup2sip_properties.xml";
+	private static final int TIMEOUT_BEFORE_ISUP_RESET = 15000;
 
 	private static Isup2SipPropertiesManagement instance;
 
@@ -65,6 +66,10 @@ public class Isup2SipPropertiesManagement implements
 
 	private final TextBuilder persistFile = TextBuilder.newInstance();
 
+	private boolean mgcpManagementSbbReady = false;
+	
+	private boolean isupManagementSbbReady = false;
+	
 	/**
 	 * in release, there will be multiple gateways supported, 
 	 * each CIC will be mapped to some Endpoint @ some gateway
@@ -87,7 +92,7 @@ public class Isup2SipPropertiesManagement implements
 
 	private boolean countersEnabled = true;
 
-	private CicManagement cicManagement;
+	private CicManagement cicManagement = null;
 
 	private int remoteSPC;
 	
@@ -115,6 +120,9 @@ public class Isup2SipPropertiesManagement implements
 		return cicManagement;
 	}
 	
+	public int getTimeoutBeforeIsupReset(){
+		return this.TIMEOUT_BEFORE_ISUP_RESET;
+	}
 	@Override
 	public int getRemoteSPC(){
 		return this.remoteSPC;
@@ -205,7 +213,8 @@ public class Isup2SipPropertiesManagement implements
 
 		// this.setUpDataSource();
 
-		this.cicManagement = new CicManagement(this.gateway, this.gatewayPartForDebug);
+//		this.cicManagement = new CicManagement(this.gateway, this.gatewayPartForDebug);
+		// this should be done when all Sbbs are ready
 
 	}
 
@@ -273,4 +282,35 @@ public class Isup2SipPropertiesManagement implements
 	 * InitialContext(); this.dataSource = (DataSource)
 	 * ctx.lookup("java:DefaultDS"); }
 	 */
+	
+	public void registerMgcpManagement(){
+		this.mgcpManagementSbbReady = true;
+		logger.info("MgcpManagementSbb registered");
+		
+		if(this.cicManagement != null) return;	// nothing to do if started already
+		
+		if(this.isupManagementSbbReady)
+			try{
+				logger.info("trying to start CicManagement");
+				this.cicManagement = new CicManagement(this.gateway, this.gatewayPartForDebug);
+			} catch (Exception e) {
+				logger.error("exception when starting CicManagement");
+			}
+	}
+
+	public void registerIsupManagement(){
+		this.isupManagementSbbReady = true;
+		logger.info("IsupManagementSbb registered");
+		
+		if(this.cicManagement != null) return;	// nothing to do if started already
+
+		if(this.mgcpManagementSbbReady)
+			try{
+				logger.info("trying to start CicManagement");
+				this.cicManagement = new CicManagement(this.gateway, this.gatewayPartForDebug);
+			} catch (Exception e) {
+				logger.error("exception when starting CicManagement");
+			}
+	}
+
 }

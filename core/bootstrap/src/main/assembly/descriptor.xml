@@ -15,6 +15,7 @@
 
 				<!-- rules and domain library -->
 				<include>org.mobicents.isup2sip:domain</include>
+				<include>org.mobicents.isup2sip:commonlibs</include>
 
 
 				<!-- Not strictly SS7, But needed by SS7 -->

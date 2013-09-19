@@ -15,6 +15,7 @@
 
 	<modules>
 		<module>domain</module>
+		<module>commonlibs</module>
 		<module>oam/cli</module>
 		<module>slee</module>
 		<module>bootstrap</module>

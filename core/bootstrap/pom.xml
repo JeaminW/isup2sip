@@ -28,6 +28,12 @@
 			<version>${pom.version}</version>
 		</dependency>
 
+		<dependency>
+			<groupId>${pom.groupId}</groupId>
+			<artifactId>commonlibs</artifactId>
+			<version>${pom.version}</version>
+		</dependency>
+
 		<!-- javolution -->
 		<dependency>
 			<groupId>javolution</groupId>

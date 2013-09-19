@@ -45,6 +45,8 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
+import javax.resource.ResourceException;
+
 import javax.slee.ActivityContextInterface;
 import javax.slee.SbbLocalObject;
 
@@ -53,7 +55,20 @@ import net.java.slee.resource.mgcp.MgcpActivityContextInterfaceFactory;
 import net.java.slee.resource.mgcp.MgcpConnectionActivity;
 import net.java.slee.resource.mgcp.event.TransactionTimeout;
 
-import org.mobicents.isup2sip.management.Channel.State;
+
+import javax.naming.InitialContext;
+import javax.slee.EventTypeID;
+import javax.slee.connection.ExternalActivityHandle;
+import javax.slee.connection.SleeConnection;
+import javax.slee.connection.SleeConnectionFactory;
+
+import org.mobicents.isup2sip.commonlibs.Channel;
+import org.mobicents.isup2sip.commonlibs.Channel.State;
+import org.mobicents.isup2sip.commonlibs.RequestIsupResetsEvent;
+import org.mobicents.isup2sip.commonlibs.RequestRsipEvent;
+
+//import org.mobicents.slee.service.events.CustomEvent;
+//import org.mobicents.slee.service.events;
 
 public class CicManagement {
 	private static final Logger logger = Logger.getLogger(CicManagement.class.getName());
@@ -68,7 +83,7 @@ public class CicManagement {
 		// TODO: this is for DEBUG only, 
 		// real configuration should be read from a file
 		// for testing, half of a card is acting as one equipment, a second as is another
-		
+/*		
 		for (int cic = 1; cic < 31; cic++) {
 			if(cic == 16) continue;
 			Channel ch;
@@ -83,8 +98,23 @@ public class CicManagement {
 					" cic=" + cic + ": " + ch.getCic() + "|" + 
 					ch.getEndpointId() + "|" + ch.getGatewayAddress());
 		}
+*/
 	}
 
+	public void addMultiplex(int multiplexId, String gateway, int multiplexPort){
+		// create CICs in "unknown" state
+		// fire NewMultiplexEvent to start corresponding Sbb
+		for(int ts = 1; ts <= 31; ts++){
+			int cic = 32*multiplexId + ts;
+			int ep = 32*multiplexPort + ts;
+			Channel ch = new Channel(gateway, Integer.toHexString(ep), cic);
+			channelByCic.put(cic, ch);
+			
+			this.fireMgcpRsipEvent(ch);
+		}
+		this.fireIsupResetEvent(multiplexId);
+	}
+	
 	public Channel allocateIdleChannel() {
 		synchronized(synchCic) { 
 			Channel ch = getNeededState(State.IDLE);
@@ -99,12 +129,14 @@ public class CicManagement {
 	public Channel getChannelByCic(int cic) {
 		return channelByCic.get(cic);
 	}
-	public void setIdle(int cic) {
+	
+	public boolean setIdle(int cic) {
 		synchronized (synchCic) {
 			try {
 				channelByCic.get(cic).setState(State.IDLE);
+				return true;
 			} catch (Exception e) {
-
+				return false;	// if a channel is unequipped - does not exist 
 			}
 		}
 	}
@@ -123,6 +155,20 @@ public class CicManagement {
 		}
 	}
 
+	public boolean setBlocked(int cic) {
+		synchronized (synchCic) {
+			try {
+				if(channelByCic.get(cic).getState()==State.IDLE){
+					channelByCic.get(cic).setState(State.BLOCKED);
+					return true;
+				}
+				return false;
+			} catch (Exception e) {
+				return false;
+			}
+		}
+	}
+	
 	public void setAnswered(int cic) {
 		synchronized (synchCic) {
 			try {
@@ -213,4 +259,78 @@ public class CicManagement {
 		}
 		return null;
 	}
+	
+	public void remove(int cic){
+		channelByCic.remove(cic);
+	}
+	
+    public void fireMgcpRsipEvent(final Channel ch) {
+        Thread t = new Thread(new Runnable() {
+        	public void run() {
+        		try {
+        			InitialContext ic = new InitialContext();
+
+                    SleeConnectionFactory factory = (SleeConnectionFactory) ic.lookup("java:/MobicentsConnectionFactory");
+
+                    SleeConnection conn = null;
+                    conn = factory.getConnection();
+
+                    ExternalActivityHandle handle = conn.createActivityHandle();
+                    
+                    EventTypeID requestType = conn.getEventTypeID("org.mobicents.isup2sip.REQ_RSIP", "org.mobicents", "1.0");
+                    
+                    RequestRsipEvent epEvent = new RequestRsipEvent(ch);
+                    
+ //                   CustomEvent customEvent = new CustomEvent(orderId, amount, customerfullname, cutomerphone, userName);
+
+                    conn.fireEvent(epEvent, requestType, handle, null);
+                    conn.close();
+        		} catch (Exception e) {
+        			e.printStackTrace();
+        		}
+        	}
+        });
+        t.start();
+        try {
+        	t.join();
+        } catch (Exception e) {
+        	e.printStackTrace();
+        }
+    }
+
+    public void fireIsupResetEvent(final int multiplexId) {
+    	
+        Thread t = new Thread(new Runnable() {
+        	public void run() {
+        		try {
+        			InitialContext ic = new InitialContext();
+
+                    SleeConnectionFactory factory = (SleeConnectionFactory) ic.lookup("java:/MobicentsConnectionFactory");
+
+                    SleeConnection conn = null;
+                    conn = factory.getConnection();
+
+                    ExternalActivityHandle handle = conn.createActivityHandle();
+                    
+                    EventTypeID requestType = conn.getEventTypeID("org.mobicents.isup2sip.REQ_RSC_GRS", "org.mobicents", "1.0");
+                    
+                    RequestIsupResetsEvent isupEvent = new RequestIsupResetsEvent(multiplexId);
+                    
+ //                   CustomEvent customEvent = new CustomEvent(orderId, amount, customerfullname, cutomerphone, userName);
+
+                    conn.fireEvent(isupEvent, requestType, handle, null);
+                    conn.close();
+        		} catch (Exception e) {
+        			e.printStackTrace();
+                }
+       
+        	}
+        });
+        t.start();
+        try {
+        	t.join();
+        } catch (Exception e) {
+        	e.printStackTrace();
+        }
+    }    
 }

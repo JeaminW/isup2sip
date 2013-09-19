@@ -15,6 +15,12 @@
 	<name>Core : Domain</name>
 
 	<dependencies>
+		<dependency>
+			<artifactId>jboss-j2ee</artifactId>
+			<groupId>javax.resource</groupId>
+			<version>4.2.2.GA</version>
+		</dependency>
+		
 		<!-- SS7 Shell -->
 		<dependency>
 			<artifactId>shell-server-api</artifactId>
@@ -56,5 +62,12 @@
 			<version>${jboss.version}</version>
 			<scope>compile</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>${pom.groupId}</groupId>
+			<artifactId>commonlibs</artifactId>
+			<version>${pom.version}</version>
+		</dependency>
+
 	</dependencies>
 </project>
