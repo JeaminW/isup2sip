@@ -50,14 +50,14 @@ public class Isup2SipPropertiesManagement implements
 	private static final org.apache.log4j.Logger logger = Logger
 			.getLogger(Isup2SipPropertiesManagement.class);
 
-	protected FastSet <Multiplex> multiplexes = new FastSet<Multiplex>();
+	private FastSet <Multiplex> multiplexes = new FastSet<Multiplex>();
 	
 //	protected static final String GATEWAY = "gateway";	// to be removed
 //	protected static final String GATEWAY_PART = "part";	// to be removed
 	
 	protected static final String REMOTE_PC = "remote";
-	protected static final String SIP_PEER = "sipPeer";
-	protected static final String SIP_IP = "sipIp";
+	protected static final String SIP_PEER = "sippeer";
+	protected static final String SIP_IP = "sipip";
 	protected static final String MUX = "mux";
 	
 	public static final String ISUP_TO_SIP = "i2s";
@@ -314,7 +314,7 @@ public class Isup2SipPropertiesManagement implements
 					persistFile.toString()));
 
 //			binding.setAlias(Multiplex.class, "pcm");
-			reader.setBinding(binding);
+   //			reader.setBinding(binding);
 			this.remoteSPC = reader.read(REMOTE_PC, Integer.class);
 			this.multiplexes = reader.read(MUX, FastSet.class);
 			this.sipIp = reader.read(SIP_IP, String.class);
