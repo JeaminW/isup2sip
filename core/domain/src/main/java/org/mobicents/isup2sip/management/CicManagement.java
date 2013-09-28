@@ -67,38 +67,16 @@ import org.mobicents.isup2sip.commonlibs.Channel.State;
 import org.mobicents.isup2sip.commonlibs.RequestIsupResetsEvent;
 import org.mobicents.isup2sip.commonlibs.RequestRsipEvent;
 
-//import org.mobicents.slee.service.events.CustomEvent;
-//import org.mobicents.slee.service.events;
-
 public class CicManagement {
 	private static final Logger logger = Logger.getLogger(CicManagement.class.getName());
 
 	private static final Object synchCic = new Object();
 	protected static Map<Integer, Channel> channelByCic = new HashMap<Integer, Channel>();
 
-	public CicManagement(String gateway, int part) throws Exception {
-		logger.warning("Isup2Sip cic mahagement started");
+	public CicManagement(){ //throws Exception {
+		logger.warning("Isup2Sip cic management started");
 
 		channelByCic.clear();
-		// TODO: this is for DEBUG only, 
-		// real configuration should be read from a file
-		// for testing, half of a card is acting as one equipment, a second as is another
-/*		
-		for (int cic = 1; cic < 31; cic++) {
-			if(cic == 16) continue;
-			Channel ch;
-			if(part!=0)	ch = new Channel(gateway,Integer.toHexString(cic + 32), cic);
-			else 		ch = new Channel(gateway,Integer.toHexString(cic), cic);
-			channelByCic.put(cic, ch);
-
-			// TODO: in fact, need to reset circuits
-			//ch.setState(State.IDLE);
-			
-			logger.warning("created channel " + ch + 
-					" cic=" + cic + ": " + ch.getCic() + "|" + 
-					ch.getEndpointId() + "|" + ch.getGatewayAddress());
-		}
-*/
 	}
 
 	public void addMultiplex(int multiplexId, String gateway, int multiplexPort){
@@ -108,11 +86,25 @@ public class CicManagement {
 			int cic = 32*multiplexId + ts;
 			int ep = 32*multiplexPort + ts;
 			Channel ch = new Channel(gateway, Integer.toHexString(ep), cic);
+			
+			// TODO this is Wrong! 
+			// signaling timeslots should be detected by means of MGCP, not during a failure of a real SIP->ISUP call..
+			ch.setState(State.IDLE);
+			
 			channelByCic.put(cic, ch);
+		}
+	}
+	
+	public void resetMultiplex(int multiplexId){
+		logger.warning("resetting multiplex #" + multiplexId);
+		for(int ts = 1; ts <= 31; ts++){
+			int cic = 32*multiplexId + ts;
+			Channel ch = channelByCic.get(cic);
+			ch.setState(State.UNKNOWN);
 			
 			this.fireMgcpRsipEvent(ch);
 		}
-		this.fireIsupResetEvent(multiplexId);
+		this.fireIsupResetEvent(multiplexId);		
 	}
 	
 	public Channel allocateIdleChannel() {
@@ -195,51 +187,16 @@ public class CicManagement {
 		if(state.equals(Channel.State.OUTGO)) return true;
 		return false;
 	}
-	
+/*	
 	public void resetChannels(Object obj, Context ctx, SbbLocalObject sbbLocalObject){
 		logger.info("resetting channels");
-/*
-		// MGCP
-		JainMgcpProvider mgcpProvider = null;
-		MgcpActivityContextInterfaceFactory mgcpActivityContestInterfaceFactory = null;
-		try{
-			mgcpProvider = (JainMgcpProvider) ctx.lookup(Isup2SipManagement.MGCP_PROVIDER);
-			mgcpActivityContestInterfaceFactory = (MgcpActivityContextInterfaceFactory) ctx.lookup(Isup2SipManagement.MGCP_ACI_FACTORY);
-		} catch (Exception e) {
-			logger.severe("exception " + e.getMessage());
-			return;
-		}
-		
-		// ISUP
 
-//        isupProvider = (RAISUPProvider) ctx.lookup("slee/resources/isup/1.0/provider");
-//        isupMessageFactory = isupProvider.getMessageFactory();
-//        isupParameterFactory = isupProvider.getParameterFactory();
-//        isupActivityContextInterfaceFactory = (org.mobicents.slee.resources.ss7.isup.ratype.ActivityContextInterfaceFactory) ctx.lookup("slee/resources/isup/1.0/acifactory");
-*/		
 		synchronized(synchCic) { 
 			Iterator <Channel> i = null; i = channelByCic.values().iterator(); 
 			while(i.hasNext()){
 					Channel ch = i.next();
 					if(ch.getState() == State.UNKNOWN){
 						try {														
-							// fire MGCP RSIP
-/*							EndpointIdentifier endpointID = new EndpointIdentifier(ch.getEndpointId(),ch.getGatewayAddress());
-							RestartInProgress rsip = new RestartInProgress(obj, endpointID, RestartMethod.Graceful);
-
-							final int txID = mgcpProvider.getUniqueTransactionHandler();
-							rsip.setTransactionHandle(txID);
-							
-							MgcpConnectionActivity connectionActivity = mgcpProvider.getConnectionActivity(txID, endpointID);
-							ActivityContextInterface epnAci = mgcpActivityContestInterfaceFactory.getActivityContextInterface(connectionActivity);
-							epnAci.attach(sbbLocalObject);
-													
-							mgcpProvider.sendMgcpEvents(new JainMgcpEvent[] { rsip });
-							logger.info("RSIP sent; ep ID=" + endpointID + " sbb=" + sbbLocalObject);
-*/
-							// TODO: 
-							// fire ISUP RSC
-				            
 				            // hack:
 							ch.setState(State.IDLE);
 
@@ -250,7 +207,7 @@ public class CicManagement {
 			}
 		}
 	}
-	
+*/	
 	private Channel getNeededState(Channel.State state){
 		Iterator <Channel> i = null; i = channelByCic.values().iterator(); 
 		while(i.hasNext()){
@@ -277,7 +234,7 @@ public class CicManagement {
 
                     ExternalActivityHandle handle = conn.createActivityHandle();
                     
-                    EventTypeID requestType = conn.getEventTypeID("org.mobicents.isup2sip.REQ_RSIP", "org.mobicents", "1.0");
+                    EventTypeID requestType = conn.getEventTypeID("org.mobicents.isup2sip.commonlibs.REQ_RSIP", "org.mobicents", "1.0");
                     
                     RequestRsipEvent epEvent = new RequestRsipEvent(ch);
                     
@@ -312,7 +269,7 @@ public class CicManagement {
 
                     ExternalActivityHandle handle = conn.createActivityHandle();
                     
-                    EventTypeID requestType = conn.getEventTypeID("org.mobicents.isup2sip.REQ_RSC_GRS", "org.mobicents", "1.0");
+                    EventTypeID requestType = conn.getEventTypeID("org.mobicents.isup2sip.commonlibs.REQ_RSC_GRS", "org.mobicents", "1.0");
                     
                     RequestIsupResetsEvent isupEvent = new RequestIsupResetsEvent(multiplexId);
                     

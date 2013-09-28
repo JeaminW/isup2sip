@@ -38,6 +38,17 @@
 		</sbb-classes>
 
 		<event event-direction="Receive" initial-event="True">
+			<event-name>ServiceStartedEvent</event-name>
+			<event-type-ref>
+				<event-type-name>
+					javax.slee.serviceactivity.ServiceStartedEvent
+				</event-type-name>
+				<event-type-vendor>javax.slee</event-type-vendor>
+				<event-type-version>1.1</event-type-version>
+			</event-type-ref>
+		</event>
+
+		<event event-direction="Receive" initial-event="True">
 			<event-name>IAM</event-name>
 			<event-type-ref>
 				<event-type-name>net.java.slee.resource.isup.INITIAL_ADDRESS_MESSAGE</event-type-name>
@@ -45,16 +56,18 @@
 				<event-type-version>1.0</event-type-version>
 			</event-type-ref>
 		</event>
+
 		<event event-direction="Receive" initial-event="False">
-		<event-name>ACM</event-name>
+			<event-name>ACM</event-name>
 			<event-type-ref>
 				<event-type-name>net.java.slee.resource.isup.ADDRESS_COMPLETE</event-type-name>
 				<event-type-vendor>net.java</event-type-vendor>
 				<event-type-version>1.0</event-type-version>
 			</event-type-ref>
 		</event>
+
 		<event event-direction="Receive" initial-event="False">
-		<event-name>ANM</event-name>
+			<event-name>ANM</event-name>
 			<event-type-ref>
 				<event-type-name>net.java.slee.resource.isup.ANSWER</event-type-name>
 				<event-type-vendor>net.java</event-type-vendor>
@@ -266,12 +279,12 @@
 		<event event-direction="Receive" initial-event="True">
 			<event-name>RequestRsipEvent</event-name>
 			<event-type-ref>
-				<event-type-name>org.mobicents.isup2sip.REQ_RSIP</event-type-name>
+				<event-type-name>org.mobicents.isup2sip.commonlibs.REQ_RSIP</event-type-name>
 				<event-type-vendor>org.mobicents</event-type-vendor>
 				<event-type-version>1.0</event-type-version>
 			</event-type-ref>
 		</event>
-
+<!--
 		<event event-direction="Receive" initial-event="True">
 			<event-name>ServiceStartedEvent</event-name>
 			<event-type-ref>
@@ -282,7 +295,7 @@
 				<event-type-version>1.1</event-type-version>
 			</event-type-ref>
 		</event>
-
+-->
 		<event event-direction="Receive" initial-event="False">
 			<event-name>MgcpTIMEOUT</event-name>
 			<event-type-ref>
@@ -344,7 +357,14 @@
 				</cmp-field>
 			</sbb-abstract-class>
 		</sbb-classes>
-
+<!--
+                <library-ref>
+                        <library-name>isup2sip.management</library-name>
+                        <library-vendor>org.mobicents</library-vendor>
+                        <library-version>1.0</library-version>
+                </library-ref>
+-->
+<!--
 		<event event-direction="Receive" initial-event="True">
 			<event-name>ServiceStartedEvent</event-name>
 			<event-type-ref>
@@ -355,11 +375,11 @@
 				<event-type-version>1.1</event-type-version>
 			</event-type-ref>
 		</event>
-
+-->
 		<event event-direction="Receive" initial-event="True">
 			<event-name>RequestIsupResetsEvent</event-name>
 			<event-type-ref>
-				<event-type-name>org.mobicents.isup2sip.REQ_RSC_GRS</event-type-name>
+				<event-type-name>org.mobicents.isup2sip.commonlibs.REQ_RSC_GRS</event-type-name>
 				<event-type-vendor>org.mobicents</event-type-vendor>
 				<event-type-version>1.0</event-type-version>
 			</event-type-ref>
@@ -374,7 +394,7 @@
 			</event-type-ref>
 		</event>
 
-                <event event-direction="Receive" initial-event="False">
+<!--                <event event-direction="Receive" initial-event="False">
 			<event-name>TimerEvent</event-name>
 			<event-type-ref>
 				<event-type-name>javax.slee.facilities.TimerEvent</event-type-name>
@@ -382,7 +402,7 @@
 				<event-type-version>1.0</event-type-version>
 			</event-type-ref>
 		</event>
-		
+-->		
 		<resource-adaptor-type-binding>
 			<resource-adaptor-type-ref>
 				<resource-adaptor-type-name>ISUPResourceAdaptorType</resource-adaptor-type-name>

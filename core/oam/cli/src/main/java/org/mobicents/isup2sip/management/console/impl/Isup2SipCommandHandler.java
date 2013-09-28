@@ -39,14 +39,15 @@ public class Isup2SipCommandHandler extends CommandHandlerWithHelp {
 		Node set = parent.addChild("set");
 		set.addChild("part");		// gateway's part, for debuggig. When a single card acts as two gateways
 		set.addChild("remote");
-		set.addChild("gateway");
+		set.addChild("gateway");	// to be removed
+		set.addChild("mux");
 
 
 		Node get = parent.addChild("get");
 		get.addChild("part");
 		get.addChild("remote");
 		get.addChild("gateway");
-		
+		get.addChild("mux");
 	};
 
 	public Isup2SipCommandHandler() {

@@ -2,16 +2,23 @@
 <!DOCTYPE event-jar PUBLIC "-//Sun Microsystems, Inc.//DTD JAIN SLEE Event 1.0//EN"
                            "http://java.sun.com/dtd/slee-event-jar_1_0.dtd">
 <event-jar>
+	<description>Event definitions ISUP-SIP management events</description>
+<!--	<library-ref>
+		<library-name>isup2sip</library-name>
+		<library-vendor>mobicents.org</library-vendor>
+		<library-version>1.0</library-version>
+	</library-ref>
+-->
 	<event-definition>
 		<description>request RSIP  to verify endpoint</description>
-		<event-type-name>org.mobicents.isup2sip.REQ_RSIP</event-type-name>
+		<event-type-name>org.mobicents.isup2sip.commonlibs.REQ_RSIP</event-type-name>
 		<event-type-vendor>org.mobicents</event-type-vendor>
 		<event-type-version>1.0</event-type-version>
 		<event-class-name>org.mobicents.isup2sip.commonlibs.RequestRsipEvent</event-class-name>
 	</event-definition>
 	<event-definition>
 		<description>request ISUP activities to initialize channels within a multiplex</description>
-		<event-type-name>org.mobicents.isup2sip.REQ_RSC_GRS</event-type-name>
+		<event-type-name>org.mobicents.isup2sip.commonlibs.REQ_RSC_GRS</event-type-name>
 		<event-type-vendor>org.mobicents</event-type-vendor>
 		<event-type-version>1.0</event-type-version>
 		<event-class-name>org.mobicents.isup2sip.commonlibs.RequestIsupResetsEvent</event-class-name>

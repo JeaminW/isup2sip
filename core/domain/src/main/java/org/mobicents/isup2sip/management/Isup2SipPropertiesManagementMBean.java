@@ -29,13 +29,13 @@ public interface Isup2SipPropertiesManagementMBean {
 
 	public void setRemoteSPC(int pc);
 	
-	public int getGatewayPart();
+//	public int getGatewayPart();
 	
-	public void setGatewayPart(int part);
+//	public void setGatewayPart(int part);
 	
-	public String getGateway();
+//	public String getGateway();
 	
-	public void setGateway(String gw);
+//	public void setGateway(String gw);
 	
 	public String getSipPeer();
 

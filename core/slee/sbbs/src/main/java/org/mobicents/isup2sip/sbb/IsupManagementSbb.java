@@ -87,13 +87,17 @@ public abstract class IsupManagementSbb implements javax.slee.Sbb {
     private static final Isup2SipPropertiesManagement isup2SipPropertiesManagement = 
     		Isup2SipPropertiesManagement.getInstance();
     
-    private final CicManagement cicManagement = isup2SipPropertiesManagement.getCicManagement();
-
-    private final int remoteSPC = isup2SipPropertiesManagement.getRemoteSPC();
+    private static final CicManagement cicManagement = isup2SipPropertiesManagement.getCicManagement();
     
- 
+    private static final int remoteSPC = isup2SipPropertiesManagement.getRemoteSPC();
+    
+    public IsupManagementSbb(){ }
+    
     // Initial event
     public void onRequestIsupResetsEvent(RequestIsupResetsEvent event, ActivityContextInterface aci){
+    	
+    	tracer.warning("ISUP reset requested for some multiplex");
+    	
     	final int mux = event.getMultiplexId();
     	this.setMultiplex(mux);
     	
@@ -165,8 +169,8 @@ public abstract class IsupManagementSbb implements javax.slee.Sbb {
 	
 	public void onServiceStartedEvent(ServiceStartedEvent event, ActivityContextInterface aci){
 		tracer.severe("service started");
-		isup2SipPropertiesManagement.registerIsupManagement();
-		aci.detach(sbbContext.getSbbLocalObject());
+//		isup2SipPropertiesManagement.registerIsupManagement();
+//		aci.detach(sbbContext.getSbbLocalObject());
 	}
 
 	

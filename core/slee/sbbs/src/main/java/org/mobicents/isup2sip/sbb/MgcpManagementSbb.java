@@ -76,13 +76,15 @@ public abstract class MgcpManagementSbb implements javax.slee.Sbb {
     private static final Isup2SipPropertiesManagement isup2SipPropertiesManagement = 
     		Isup2SipPropertiesManagement.getInstance();
     
-    private final CicManagement cicManagement = isup2SipPropertiesManagement.getCicManagement();
-
-    private final int remoteSPC = isup2SipPropertiesManagement.getRemoteSPC();
-   
+    private static final CicManagement cicManagement = isup2SipPropertiesManagement.getCicManagement();
+    
+    private static final int remoteSPC = isup2SipPropertiesManagement.getRemoteSPC();
+    
+    public MgcpManagementSbb(){ }
+    
     public void onRequestRsipEvent(RequestRsipEvent event,  ActivityContextInterface aci){
     	tracer.info("MGCP Management Sbb started " + event);
-    	
+    	   
     	final SbbLocalObject sbbLocalObject = sbbContext.getSbbLocalObject();
     	final Channel channel = event.getChannel();
     	
@@ -144,10 +146,11 @@ public abstract class MgcpManagementSbb implements javax.slee.Sbb {
 		aci.detach(sbbContext.getSbbLocalObject());
 	}
 
+	
 	public void onServiceStartedEvent(ServiceStartedEvent event, ActivityContextInterface aci){
 		tracer.severe("service started");
-		isup2SipPropertiesManagement.registerMgcpManagement();
-		aci.detach(sbbContext.getSbbLocalObject());
+//		isup2SipPropertiesManagement.registerMgcpManagement();
+//		aci.detach(sbbContext.getSbbLocalObject());
 	}
 		
 	

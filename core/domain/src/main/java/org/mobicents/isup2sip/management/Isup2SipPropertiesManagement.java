@@ -25,14 +25,21 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 import javolution.text.TextBuilder;
+import javolution.util.FastSet;
 import javolution.xml.XMLBinding;
 import javolution.xml.XMLObjectReader;
 import javolution.xml.XMLObjectWriter;
 import javolution.xml.stream.XMLStreamException;
 
 import org.apache.log4j.Logger;
+import org.mobicents.isup2sip.commonlibs.Channel;
 /**
  * @author dmitri soloviev
  * 
@@ -43,11 +50,15 @@ public class Isup2SipPropertiesManagement implements
 	private static final org.apache.log4j.Logger logger = Logger
 			.getLogger(Isup2SipPropertiesManagement.class);
 
-	protected static final String GATEWAY = "gateway";
-	protected static final String GATEWAY_PART = "part";
+	protected FastSet <Multiplex> multiplexes = new FastSet<Multiplex>();
+	
+//	protected static final String GATEWAY = "gateway";	// to be removed
+//	protected static final String GATEWAY_PART = "part";	// to be removed
+	
 	protected static final String REMOTE_PC = "remote";
 	protected static final String SIP_PEER = "sipPeer";
 	protected static final String SIP_IP = "sipIp";
+	protected static final String MUX = "mux";
 	
 	public static final String ISUP_TO_SIP = "i2s";
 	public static final String SIP_TO_ISUP = "s2i";
@@ -70,6 +81,46 @@ public class Isup2SipPropertiesManagement implements
 	
 	private boolean isupManagementSbbReady = false;
 	
+	private Multiplex findMultiplex(int index){
+		for (FastSet.Record r = multiplexes.head(), end = multiplexes.tail(); (r = r.getNext()) != end;) {
+		     Multiplex mux = multiplexes.valueOf(r);
+		     if (mux.getIndex() == index) return mux;
+		}
+		
+		return null;
+	}
+		
+	public void addMultiplex(int index, String gw, int port){
+		
+		if( findMultiplex(index) != null ) 
+			delMultiplex(index);
+	
+		Multiplex mux = new Multiplex(index, gw, port);
+		multiplexes.add(mux);
+		
+		cicManagement.addMultiplex(index, gateway, port);
+	}
+	
+	public void delMultiplex(int index){
+		for (FastSet.Record r = multiplexes.head(), end = multiplexes.tail(); (r = r.getNext()) != end;) {
+		     Multiplex mux = multiplexes.valueOf(r);
+		     if (mux.getIndex() == index) {
+		    	 multiplexes.delete(r);
+		    	 return;
+		     }
+		}
+	}
+	
+	public void showMultiplexes(StringBuilder sb){
+		if( multiplexes.isEmpty() ) return;
+		
+		for (FastSet.Record r = multiplexes.head(), end = multiplexes.tail(); (r = r.getNext()) != end;) {
+		     Multiplex mux = multiplexes.valueOf(r);
+		     sb.append(mux.toString());
+		     sb.append("\n");
+		}
+	}
+	
 	/**
 	 * in release, there will be multiple gateways supported, 
 	 * each CIC will be mapped to some Endpoint @ some gateway
@@ -86,19 +137,18 @@ public class Isup2SipPropertiesManagement implements
 	/** during developing, a single Telscale Card is shared between 2 isup2sip instances,
 	 * that are running one agains another
 	 */
-	private int gatewayPartForDebug;
+//	private int gatewayPartForDebug;
 	
-	// private DataSource dataSource;
-
 	private boolean countersEnabled = true;
 
-	private CicManagement cicManagement = null;
+	private CicManagement cicManagement = new CicManagement();
 
 	private int remoteSPC;
 	
 	private Isup2SipPropertiesManagement(String name) {
 		this.name = name;
 		binding.setClassAttribute(CLASS_ATTRIBUTE);
+		//binding.setAlias(Multiplex.class, "pcm");
 	}
 
 	protected static Isup2SipPropertiesManagement getInstance(String name) {
@@ -133,7 +183,7 @@ public class Isup2SipPropertiesManagement implements
 		this.remoteSPC = pc;
 		logger.warn("remote SPC is set to " + pc);
 	}
-	
+/*	
 	@Override
 	public int getGatewayPart(){
 		return this.gatewayPartForDebug;
@@ -154,7 +204,7 @@ public class Isup2SipPropertiesManagement implements
 	public void setGateway(String gw){
 		this.gateway = gw;
 	}
-		
+*/		
 	@Override
 	public String getSipPeer(){
 		return this.sipPeer;
@@ -213,9 +263,6 @@ public class Isup2SipPropertiesManagement implements
 
 		// this.setUpDataSource();
 
-//		this.cicManagement = new CicManagement(this.gateway, this.gatewayPartForDebug);
-		// this should be done when all Sbbs are ready
-
 	}
 
 	public void stop() throws Exception {
@@ -233,17 +280,19 @@ public class Isup2SipPropertiesManagement implements
 		try {
 			XMLObjectWriter writer = XMLObjectWriter
 					.newInstance(new FileOutputStream(persistFile.toString()));
+			
+//			binding.setAlias(Multiplex.class, "pcm");
 			writer.setBinding(binding);
 			// Enables cross-references.
 			// writer.setReferenceResolver(new XMLReferenceResolver());
 			writer.setIndentation(TAB_INDENT);
 
-			writer.write(this.gateway, GATEWAY,  String.class);
-			writer.write(this.gatewayPartForDebug, GATEWAY_PART,  Integer.class);
 			writer.write(this.remoteSPC, REMOTE_PC,  Integer.class);
+			writer.write(this.multiplexes, MUX, FastSet.class);
 			writer.write(this.sipIp, SIP_IP,  String.class);
 			writer.write(this.sipPeer, SIP_PEER,  String.class);
-		
+
+			
 			writer.close();
 			
 			logger.error("sipIp=" + this.sipIp + ", sipPeer=" + this.sipPeer); 
@@ -264,15 +313,16 @@ public class Isup2SipPropertiesManagement implements
 			reader = XMLObjectReader.newInstance(new FileInputStream(
 					persistFile.toString()));
 
+//			binding.setAlias(Multiplex.class, "pcm");
 			reader.setBinding(binding);
-			this.gateway = reader.read(GATEWAY, String.class);
-			this.gatewayPartForDebug = reader.read(GATEWAY_PART, Integer.class);
 			this.remoteSPC = reader.read(REMOTE_PC, Integer.class);
+			this.multiplexes = reader.read(MUX, FastSet.class);
 			this.sipIp = reader.read(SIP_IP, String.class);
 			this.sipPeer = reader.read(SIP_PEER, String.class);
 			
 			reader.close();
-		} catch (XMLStreamException ex) {
+		} catch (Exception e) {
+			logger.error("Error while loading file",e);
 			// this.logger.info(
 			// "Error while re-creating Linksets from persisted file", ex);
 		}
@@ -289,13 +339,12 @@ public class Isup2SipPropertiesManagement implements
 		
 		if(this.cicManagement != null) return;	// nothing to do if started already
 		
-		if(this.isupManagementSbbReady)
-			try{
-				logger.info("trying to start CicManagement");
-				this.cicManagement = new CicManagement(this.gateway, this.gatewayPartForDebug);
-			} catch (Exception e) {
-				logger.error("exception when starting CicManagement");
+		if(this.isupManagementSbbReady){
+			for (FastSet.Record r = multiplexes.head(), end = multiplexes.tail(); (r = r.getNext()) != end;) {
+				Multiplex mux = multiplexes.valueOf(r);
+				cicManagement.resetMultiplex(mux.getIndex());
 			}
+		}
 	}
 
 	public void registerIsupManagement(){
@@ -304,13 +353,12 @@ public class Isup2SipPropertiesManagement implements
 		
 		if(this.cicManagement != null) return;	// nothing to do if started already
 
-		if(this.mgcpManagementSbbReady)
-			try{
-				logger.info("trying to start CicManagement");
-				this.cicManagement = new CicManagement(this.gateway, this.gatewayPartForDebug);
-			} catch (Exception e) {
-				logger.error("exception when starting CicManagement");
+		if(this.mgcpManagementSbbReady){
+			for (FastSet.Record r = multiplexes.head(), end = multiplexes.tail(); (r = r.getNext()) != end;) {
+				Multiplex mux = multiplexes.valueOf(r);
+				cicManagement.resetMultiplex(mux.getIndex());
 			}
+		}
 	}
 
 }

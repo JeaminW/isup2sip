@@ -22,6 +22,8 @@
 package org.mobicents.isup2sip.management;
 
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.mobicents.ss7.management.console.ShellExecutor;
@@ -105,14 +107,26 @@ public class Isup2SipShellExecutor implements ShellExecutor {
 		}
 
 		String parName = options[2].toLowerCase();
-		if (parName.equals(Isup2SipPropertiesManagement.GATEWAY)) {
+/*		if (parName.equals(Isup2SipPropertiesManagement.GATEWAY)) {
 			isup2sipPropertiesManagement.setGateway(options[3]);
 		} else if (parName.equals(Isup2SipPropertiesManagement.GATEWAY_PART)) {
 			isup2sipPropertiesManagement.setGatewayPart(Integer.parseInt(options[3]));
-		} else if (parName.equals(Isup2SipPropertiesManagement.REMOTE_PC)) {
+		} else */
+		if (parName.equals(Isup2SipPropertiesManagement.REMOTE_PC)) {
 			isup2sipPropertiesManagement.setRemoteSPC(Integer.parseInt(options[3]));
 		} else if (parName.equals(Isup2SipPropertiesManagement.SIP_PEER)) {
 			isup2sipPropertiesManagement.setSipPeer(options[3]);
+		} else if (parName.equals(Isup2SipPropertiesManagement.SIP_IP)) {
+			isup2sipPropertiesManagement.setSipIp(options[3]);
+		} else if(parName.equals(Isup2SipPropertiesManagement.MUX)){
+			int index = Integer.parseInt(options[3]);
+			isup2sipPropertiesManagement.delMultiplex(index);
+			
+			if(options.length > 5){
+				isup2sipPropertiesManagement.addMultiplex(index, options[4], Integer.parseInt(options[5]));
+			
+				isup2sipPropertiesManagement.getCicManagement().resetMultiplex(index);
+			}
 		} else {
 			return Isup2SipOAMMessages.INVALID_COMMAND;
 		}
@@ -134,37 +148,49 @@ public class Isup2SipShellExecutor implements ShellExecutor {
 			StringBuilder sb = new StringBuilder();
 			sb.append(options[2]);
 			sb.append(" = ");
-			if (parName.equals(Isup2SipPropertiesManagement.GATEWAY)) {
-				sb.append(isup2sipPropertiesManagement.getGateway());
-			} else if (parName.equals(Isup2SipPropertiesManagement.GATEWAY_PART)) {
-				sb.append(Integer.toString(isup2sipPropertiesManagement.getGatewayPart()));
-			} else if (parName.equals(Isup2SipPropertiesManagement.REMOTE_PC)) {
+
+			if (parName.equals(Isup2SipPropertiesManagement.REMOTE_PC)) {
 				sb.append(Integer.toString(isup2sipPropertiesManagement.getRemoteSPC()));
 			} else if (parName.equals(Isup2SipPropertiesManagement.SIP_PEER)) {
 				sb.append(isup2sipPropertiesManagement.getSipPeer());
+			} else if (parName.equals(Isup2SipPropertiesManagement.SIP_IP)) {
+				sb.append(isup2sipPropertiesManagement.getSipIp());
 			} else {
 				return Isup2SipOAMMessages.INVALID_COMMAND;
 			}
 
 			return sb.toString();
-		} else {
-			StringBuilder sb = new StringBuilder();
-			sb.append(Isup2SipPropertiesManagement.GATEWAY + " = ");
-			sb.append(isup2sipPropertiesManagement.getGateway());
-			sb.append(", ");
+		} /*else if (options.length == 4) {	// isup2sip get multiplex N
+			String parName = options[2].toLowerCase();
 
-			sb.append(Isup2SipPropertiesManagement.GATEWAY_PART + " = ");
-			sb.append(Integer.toString(isup2sipPropertiesManagement.getGatewayPart()));
-			sb.append(", ");
+			StringBuilder sb = new StringBuilder();
+			
+			if (parName.equals(Isup2SipPropertiesManagement.MUX)) {
+				int index = Integer.valueOf(options[3]);
+				Multiplex mux = isup2sipPropertiesManagement.getMultimplex(index);
+				sb.append(mux);
+			} else {
+				return Isup2SipOAMMessages.INVALID_COMMAND;
+			}
+				
+			return sb.toString();
+		} */else {
+			StringBuilder sb = new StringBuilder();
 
 			sb.append(Isup2SipPropertiesManagement.REMOTE_PC + " = ");
 			sb.append(Integer.toString(isup2sipPropertiesManagement.getRemoteSPC()));
 			sb.append(", ");
 
+			sb.append(Isup2SipPropertiesManagement.SIP_IP + " = ");
+			sb.append(isup2sipPropertiesManagement.getSipIp());
+			sb.append("\n");
+			
 			sb.append(Isup2SipPropertiesManagement.SIP_PEER + " = ");
 			sb.append(isup2sipPropertiesManagement.getSipPeer());
 			sb.append("\n");
 
+			isup2sipPropertiesManagement.showMultiplexes(sb);
+			
 			return sb.toString();
 		}
 	}

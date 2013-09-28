@@ -76,7 +76,7 @@ import javax.slee.SbbContext;
 import javax.slee.SbbLocalObject;
 import javax.slee.UnrecognizedActivityException;
 import javax.slee.facilities.Tracer;
-
+import javax.slee.serviceactivity.ServiceStartedEvent;
 
 import net.java.slee.resource.mgcp.JainMgcpProvider;
 import net.java.slee.resource.mgcp.MgcpActivityContextInterfaceFactory;
@@ -711,8 +711,12 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 			tracer.severe(e.getMessage(), e);
 		}
 	}
-
-
+	
+	public void onServiceStartedEvent(ServiceStartedEvent event, ActivityContextInterface aci){
+		tracer.severe("service started");
+//		isup2SipPropertiesManagement.registerIsupManagement();
+//		aci.detach(sbbContext.getSbbLocalObject());
+	}
 	
 	public void showMe(){
 		tracer.warning("object: " + sbbContext.getSbbLocalObject() 
