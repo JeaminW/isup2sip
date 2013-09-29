@@ -138,12 +138,12 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
     protected ISUPParameterFactory isupParameterFactory;
     protected org.mobicents.slee.resources.ss7.isup.ratype.ActivityContextInterfaceFactory isupActivityContextInterfaceFactory;
     
-    private static final Isup2SipPropertiesManagement isup2SipPropertiesManagement = 
+    private Isup2SipPropertiesManagement isup2SipPropertiesManagement = 
     		Isup2SipPropertiesManagement.getInstance();
     
-    private final CicManagement cicManagement = isup2SipPropertiesManagement.getCicManagement();
+    private CicManagement cicManagement = isup2SipPropertiesManagement.getCicManagement();
     
-    private final int remoteSPC = isup2SipPropertiesManagement.getRemoteSPC();
+    private int remoteSPC = isup2SipPropertiesManagement.getRemoteSPC();
 
     public Isup2SipSbb(){ }
 
@@ -713,7 +713,7 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 	}
 	
 	public void onServiceStartedEvent(ServiceStartedEvent event, ActivityContextInterface aci){
-		tracer.severe("service started");
+		tracer.severe("-- service started");
 //		isup2SipPropertiesManagement.registerIsupManagement();
 //		aci.detach(sbbContext.getSbbLocalObject());
 	}
@@ -884,6 +884,7 @@ public abstract class Isup2SipSbb implements javax.slee.Sbb {
 			ex.printStackTrace();
 		}
 		
+		tracer.info("CRCX: " + createConnection);
 		mgcpProvider.sendMgcpEvents(new JainMgcpEvent[] { createConnection });
 		tracer.info("CRCX sent; ep ID=" + endpointID + " sbb=" + sbbLocalObject);
 	}

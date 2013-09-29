@@ -37,7 +37,7 @@ public class Isup2SipCommandHandler extends CommandHandlerWithHelp {
 		Node parent = commandTree.getTopNode();
 
 		Node set = parent.addChild("set");
-		set.addChild("mux");
+		set.addChild("tdm");
 		set.addChild("remote");
 		set.addChild("sipip");
 		set.addChild("sippeer");
@@ -45,7 +45,7 @@ public class Isup2SipCommandHandler extends CommandHandlerWithHelp {
 
 
 		Node get = parent.addChild("get");
-		get.addChild("mux");
+		get.addChild("tdm");
 		get.addChild("remote");
 		get.addChild("sipip");
 		get.addChild("sippeer");

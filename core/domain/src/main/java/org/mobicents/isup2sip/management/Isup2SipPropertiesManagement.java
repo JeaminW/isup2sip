@@ -50,7 +50,7 @@ public class Isup2SipPropertiesManagement implements
 	private static final org.apache.log4j.Logger logger = Logger
 			.getLogger(Isup2SipPropertiesManagement.class);
 
-	private FastSet <Multiplex> multiplexes = new FastSet<Multiplex>();
+	private FastSet <Multiplex> interfaces = new FastSet<Multiplex>();
 	
 //	protected static final String GATEWAY = "gateway";	// to be removed
 //	protected static final String GATEWAY_PART = "part";	// to be removed
@@ -58,14 +58,16 @@ public class Isup2SipPropertiesManagement implements
 	protected static final String REMOTE_PC = "remote";
 	protected static final String SIP_PEER = "sippeer";
 	protected static final String SIP_IP = "sipip";
-	protected static final String MUX = "mux";
+	protected static final String TDM = "tdm";
+	protected static final String INTERFACES = "interfaces";
+	
 	
 	public static final String ISUP_TO_SIP = "i2s";
 	public static final String SIP_TO_ISUP = "s2i";
 
 	private static final String TAB_INDENT = "\t";
 	private static final String CLASS_ATTRIBUTE = "type";
-	private static final XMLBinding binding = new XMLBinding();
+	private XMLBinding binding = null;
 	private static final String PERSIST_FILE_NAME = "isup2sip_properties.xml";
 	private static final int TIMEOUT_BEFORE_ISUP_RESET = 15000;
 
@@ -82,8 +84,8 @@ public class Isup2SipPropertiesManagement implements
 	private boolean isupManagementSbbReady = false;
 	
 	private Multiplex findMultiplex(int index){
-		for (FastSet.Record r = multiplexes.head(), end = multiplexes.tail(); (r = r.getNext()) != end;) {
-		     Multiplex mux = multiplexes.valueOf(r);
+		for (FastSet.Record r = interfaces.head(), end = interfaces.tail(); (r = r.getNext()) != end;) {
+		     Multiplex mux = interfaces.valueOf(r);
 		     if (mux.getIndex() == index) return mux;
 		}
 		
@@ -96,36 +98,42 @@ public class Isup2SipPropertiesManagement implements
 			delMultiplex(index);
 	
 		Multiplex mux = new Multiplex(index, gw, port);
-		multiplexes.add(mux);
+		interfaces.add(mux);
 		
-		cicManagement.addMultiplex(index, gateway, port);
+		cicManagement.addMultiplex(index, gw, port);
 	}
 	
 	public void delMultiplex(int index){
-		for (FastSet.Record r = multiplexes.head(), end = multiplexes.tail(); (r = r.getNext()) != end;) {
-		     Multiplex mux = multiplexes.valueOf(r);
+		for (FastSet.Record r = interfaces.head(), end = interfaces.tail(); (r = r.getNext()) != end;) {
+		     Multiplex mux = interfaces.valueOf(r);
 		     if (mux.getIndex() == index) {
-		    	 multiplexes.delete(r);
+		    	 interfaces.delete(r);
 		    	 return;
 		     }
 		}
 	}
 	
 	public void showMultiplexes(StringBuilder sb){
-		if( multiplexes.isEmpty() ) return;
+		if( interfaces.isEmpty() ) return;
 		
-		for (FastSet.Record r = multiplexes.head(), end = multiplexes.tail(); (r = r.getNext()) != end;) {
-		     Multiplex mux = multiplexes.valueOf(r);
+		for (FastSet.Record r = interfaces.head(), end = interfaces.tail(); (r = r.getNext()) != end;) {
+		     Multiplex mux = interfaces.valueOf(r);
 		     sb.append(mux.toString());
 		     sb.append("\n");
 		}
 	}
 	
-	/**
-	 * in release, there will be multiple gateways supported, 
-	 * each CIC will be mapped to some Endpoint @ some gateway
-	 */
-	private String gateway;
+	private void initMultiplexes(){
+		if( interfaces.isEmpty() ) return;
+
+		for (FastSet.Record r = interfaces.head(), end = interfaces.tail(); (r = r.getNext()) != end;) {
+		     Multiplex mux = interfaces.valueOf(r);
+		     int index = mux.getIndex();
+		     cicManagement.addMultiplex(index, mux.getGateway(), mux.getPort());
+			 logger.info("resetting pcm #" + index);
+		     cicManagement.resetMultiplex(index);
+		}
+	}
 	
 	/** in ISUP->SIP case, this peer will get all calls
 	 * 
@@ -147,11 +155,12 @@ public class Isup2SipPropertiesManagement implements
 	
 	private Isup2SipPropertiesManagement(String name) {
 		this.name = name;
-		binding.setClassAttribute(CLASS_ATTRIBUTE);
+		//binding.setClassAttribute(CLASS_ATTRIBUTE);
 		//binding.setAlias(Multiplex.class, "pcm");
 	}
 
 	protected static Isup2SipPropertiesManagement getInstance(String name) {
+		//logger.error("--- requesting by name; name is <" + name + "> instance is " + instance);
 		if (instance == null) {
 			instance = new Isup2SipPropertiesManagement(name);
 		}
@@ -159,6 +168,7 @@ public class Isup2SipPropertiesManagement implements
 	}
 
 	public static Isup2SipPropertiesManagement getInstance() {
+		//logger.error("--- requesting w/o parameter; instance is " + instance);
 		return instance;
 	}
 
@@ -262,6 +272,7 @@ public class Isup2SipPropertiesManagement implements
 		}
 
 		// this.setUpDataSource();
+		this.initMultiplexes();
 
 	}
 
@@ -273,6 +284,14 @@ public class Isup2SipPropertiesManagement implements
 	/**
 	 * Persist
 	 */
+	private void setXMLBinging(){
+		binding = new XMLBinding();
+		binding.setAlias(org.mobicents.isup2sip.management.Multiplex.class, "tdm");
+		binding.setAlias(Integer.class,"port");
+		binding.setAlias(Integer.class,"index");
+		binding.setAlias(String.class,"gateway");
+	}
+
 	public void store() {
 
 		// TODO : Should we keep reference to Objects rather than recreating
@@ -282,15 +301,17 @@ public class Isup2SipPropertiesManagement implements
 					.newInstance(new FileOutputStream(persistFile.toString()));
 			
 //			binding.setAlias(Multiplex.class, "pcm");
+			this.setXMLBinging();
 			writer.setBinding(binding);
+			
 			// Enables cross-references.
 			// writer.setReferenceResolver(new XMLReferenceResolver());
 			writer.setIndentation(TAB_INDENT);
 
 			writer.write(this.remoteSPC, REMOTE_PC,  Integer.class);
-			writer.write(this.multiplexes, MUX, FastSet.class);
 			writer.write(this.sipIp, SIP_IP,  String.class);
 			writer.write(this.sipPeer, SIP_PEER,  String.class);
+			writer.write(this.interfaces, INTERFACES, FastSet.class);
 
 			
 			writer.close();
@@ -315,10 +336,13 @@ public class Isup2SipPropertiesManagement implements
 
 //			binding.setAlias(Multiplex.class, "pcm");
    //			reader.setBinding(binding);
+			this.setXMLBinging();
+			reader.setBinding(binding);
+			
 			this.remoteSPC = reader.read(REMOTE_PC, Integer.class);
-			this.multiplexes = reader.read(MUX, FastSet.class);
 			this.sipIp = reader.read(SIP_IP, String.class);
 			this.sipPeer = reader.read(SIP_PEER, String.class);
+			this.interfaces = reader.read(INTERFACES, FastSet.class);
 			
 			reader.close();
 		} catch (Exception e) {
@@ -340,8 +364,8 @@ public class Isup2SipPropertiesManagement implements
 		if(this.cicManagement != null) return;	// nothing to do if started already
 		
 		if(this.isupManagementSbbReady){
-			for (FastSet.Record r = multiplexes.head(), end = multiplexes.tail(); (r = r.getNext()) != end;) {
-				Multiplex mux = multiplexes.valueOf(r);
+			for (FastSet.Record r = interfaces.head(), end = interfaces.tail(); (r = r.getNext()) != end;) {
+				Multiplex mux = interfaces.valueOf(r);
 				cicManagement.resetMultiplex(mux.getIndex());
 			}
 		}
@@ -354,8 +378,8 @@ public class Isup2SipPropertiesManagement implements
 		if(this.cicManagement != null) return;	// nothing to do if started already
 
 		if(this.mgcpManagementSbbReady){
-			for (FastSet.Record r = multiplexes.head(), end = multiplexes.tail(); (r = r.getNext()) != end;) {
-				Multiplex mux = multiplexes.valueOf(r);
+			for (FastSet.Record r = interfaces.head(), end = interfaces.tail(); (r = r.getNext()) != end;) {
+				Multiplex mux = interfaces.valueOf(r);
 				cicManagement.resetMultiplex(mux.getIndex());
 			}
 		}

@@ -80,13 +80,16 @@ public class Isup2SipManagement {
 		ObjectName servicePropObjNname = new ObjectName(
 				Isup2SipManagement.JMX_DOMAIN
 						+ ":name=ServicePropertiesManagement");
+		
+		logger.info("Starting ISUP 2 SIP ServiceManagement");
+
 		StandardMBean servicePropMxBean = new StandardMBean(
 				this.servicePropertiesManagement,
 				Isup2SipPropertiesManagementMBean.class, true);
+		
 		this.mbeanServer.registerMBean(servicePropMxBean, servicePropObjNname);
 
-		logger.info("Started ServiceManagement");
-
+		
 		logger.info("Started ISUP 2 SIP ServiceManagement");
 	}
 

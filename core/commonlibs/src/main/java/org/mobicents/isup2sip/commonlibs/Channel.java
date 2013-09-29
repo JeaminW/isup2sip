@@ -73,4 +73,9 @@ public class Channel{
 	public void setState(State st) {
 		state = st;
 	}
+	
+	@Override 
+	public String toString(){
+		return "channel CIC=" + cic + " EP=" + this.endpointId + "@" + this.gatewayAddress;
+	}
 }

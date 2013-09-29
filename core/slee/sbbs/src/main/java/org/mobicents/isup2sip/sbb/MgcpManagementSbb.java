@@ -26,12 +26,16 @@ package org.mobicents.isup2sip.sbb;
 import jain.protocol.ip.mgcp.JainMgcpCommandEvent;
 import jain.protocol.ip.mgcp.JainMgcpEvent;
 import jain.protocol.ip.mgcp.JainMgcpResponseEvent;
+import jain.protocol.ip.mgcp.message.AuditEndpoint;
+import jain.protocol.ip.mgcp.message.AuditEndpointResponse;
+import jain.protocol.ip.mgcp.message.CreateConnection;
 import jain.protocol.ip.mgcp.message.RestartInProgress;
 import jain.protocol.ip.mgcp.message.RestartInProgressResponse;
 import jain.protocol.ip.mgcp.message.parms.CallIdentifier;
 import jain.protocol.ip.mgcp.message.parms.ConflictingParameterException;
 import jain.protocol.ip.mgcp.message.parms.ConnectionDescriptor;
 import jain.protocol.ip.mgcp.message.parms.ConnectionIdentifier;
+import jain.protocol.ip.mgcp.message.parms.ConnectionMode;
 import jain.protocol.ip.mgcp.message.parms.EndpointIdentifier;
 import jain.protocol.ip.mgcp.message.parms.RestartMethod;
 import jain.protocol.ip.mgcp.message.parms.ReturnCode;
@@ -70,39 +74,31 @@ public abstract class MgcpManagementSbb implements javax.slee.Sbb {
 	private static Tracer tracer;
 	
 	// MGCP
-	private JainMgcpProvider mgcpProvider;
-	private MgcpActivityContextInterfaceFactory mgcpActivityContestInterfaceFactory;
+	private JainMgcpProvider mgcpProvider = null;
+	private MgcpActivityContextInterfaceFactory mgcpActivityContestInterfaceFactory = null;
 	
     private static final Isup2SipPropertiesManagement isup2SipPropertiesManagement = 
     		Isup2SipPropertiesManagement.getInstance();
     
-    private static final CicManagement cicManagement = isup2SipPropertiesManagement.getCicManagement();
+    private CicManagement cicManagement = isup2SipPropertiesManagement.getCicManagement();
     
-    private static final int remoteSPC = isup2SipPropertiesManagement.getRemoteSPC();
+    private int remoteSPC = isup2SipPropertiesManagement.getRemoteSPC();
     
     public MgcpManagementSbb(){ }
     
     public void onRequestRsipEvent(RequestRsipEvent event,  ActivityContextInterface aci){
     	tracer.info("MGCP Management Sbb started " + event);
-    	   
-    	final SbbLocalObject sbbLocalObject = sbbContext.getSbbLocalObject();
-    	final Channel channel = event.getChannel();
     	
-		EndpointIdentifier endpointID = new EndpointIdentifier(channel.getEndpointId(),channel.getGatewayAddress());
-		this.setEndpointIdentifier(endpointID);
-		RestartInProgress rsip = new RestartInProgress(this, endpointID, RestartMethod.Graceful);
-
-		final int txID = mgcpProvider.getUniqueTransactionHandler();
-		rsip.setTransactionHandle(txID);
-		
-		MgcpConnectionActivity connectionActivity = mgcpProvider.getConnectionActivity(txID, endpointID);
-		ActivityContextInterface epnAci = mgcpActivityContestInterfaceFactory.getActivityContextInterface(connectionActivity);
-		epnAci.attach(sbbLocalObject);
-								
-		mgcpProvider.sendMgcpEvents(new JainMgcpEvent[] { rsip });
-		tracer.info("RSIP sent; ep ID=" + endpointID + " sbb=" + sbbLocalObject);
+    	final Channel channel = event.getChannel();
+    	tracer.info("RSIP for channel " + channel);
+//    	tracer.info("mgcpProvider is " + mgcpProvider);
+//    	tracer.info("mgcpActContIF is " + mgcpActivityContestInterfaceFactory);
+    	
+//   	sendCRCX(channel);
+//    	sendRSIP(channel);
+    	sendAUEP(channel);
     }
-    
+/*    
 	public void onRestartInProgressResponse(RestartInProgressResponse event, ActivityContextInterface aci) {
 		tracer.info("RSIP RESP " + event);
 		
@@ -125,12 +121,12 @@ public abstract class MgcpManagementSbb implements javax.slee.Sbb {
 		//cicManagement.setIdle(cic);
 		aci.detach(sbbContext.getSbbLocalObject());
 	}	
-	
-	public void onMgcpTIMEOUT(TransactionTimeout event, ActivityContextInterface aci){
-		tracer.severe("Mgcp Timeout" + event);
+*/
+	public void onAuditEndpointResponse(AuditEndpointResponse event, ActivityContextInterface aci) {
+		tracer.info("AUEP RESP " + event);
+		aci.detach(sbbContext.getSbbLocalObject());
 		
-		final JainMgcpCommandEvent mgcpEvent = event.getJainMgcpCommandEvent();
-		final EndpointIdentifier endpointID = mgcpEvent.getEndpointIdentifier();
+		final EndpointIdentifier endpointID = this.getEndpointIdentifier();
 		final int cic = this.getCic(endpointID);
 		
 		if(cic == -1) {
@@ -139,11 +135,35 @@ public abstract class MgcpManagementSbb implements javax.slee.Sbb {
 			return;
 		}
 		
+		ReturnCode status = event.getReturnCode();
+
+		if(status.getValue() != ReturnCode.TRANSACTION_EXECUTED_NORMALLY){
+			tracer.warning("removing unequipped endpoint id " + endpointID);
+			cicManagement.remove(cic);
+		}
+		
+		//EndpointIdentifier[] z = response.getEndpointIdentifierList();
+		
+		cicManagement.setIdle(cic);
+	}	
+    
+	public void onMgcpTIMEOUT(TransactionTimeout event, ActivityContextInterface aci){
+		tracer.severe("Mgcp Timeout" + event);
+		aci.detach(sbbContext.getSbbLocalObject());
+		
+		final JainMgcpCommandEvent mgcpEvent = event.getJainMgcpCommandEvent();
+		final EndpointIdentifier endpointID = mgcpEvent.getEndpointIdentifier();
+		final int cic = this.getCic(endpointID);
+		
+		if(cic == -1) {
+			tracer.severe("invalid endpoint id " + endpointID);
+			return;
+		}
+		
 		if(mgcpEvent instanceof RestartInProgress){
 			tracer.severe("no resp for RSIP " + endpointID);
 			cicManagement.remove(cic);
 		}
-		aci.detach(sbbContext.getSbbLocalObject());
 	}
 
 	
@@ -167,12 +187,15 @@ public abstract class MgcpManagementSbb implements javax.slee.Sbb {
 			tracer = sbbContext.getTracer(MgcpManagementSbb.class
 					.getSimpleName());
 		}
+		tracer.info("sbbContext=" + sbbContext);
+		
 		try {	
+			tracer.severe("trying to start! sbbContext " + sbbContext);
 			final Context ctx = (Context) new InitialContext().lookup(Isup2SipManagement.CONTEXT);
 			// MGCP
 			mgcpProvider = (JainMgcpProvider) ctx.lookup(Isup2SipManagement.MGCP_PROVIDER);
 			mgcpActivityContestInterfaceFactory = (MgcpActivityContextInterfaceFactory) ctx.lookup(Isup2SipManagement.MGCP_ACI_FACTORY);
-			
+			tracer.info("sbbContext is set");
 		} catch (NamingException e) {
 			tracer.severe(e.getMessage(), e);
 		}
@@ -216,5 +239,75 @@ public abstract class MgcpManagementSbb implements javax.slee.Sbb {
 		int pos = epStr.indexOf("@");
 		if(pos == -1) return pos;
 		return Integer.parseInt(epStr.substring(0, pos), 16);
+	}
+/*	
+	void sendCRCX(Channel channel){
+		
+		final SbbLocalObject sbbLocalObject = sbbContext.getSbbLocalObject();
+		
+		CallIdentifier mgcpCallID = mgcpProvider.getUniqueCallIdentifier();
+		EndpointIdentifier endpointID = new EndpointIdentifier(channel.getEndpointId(),channel.getGatewayAddress());
+		CreateConnection createConnection = new CreateConnection(this,
+				mgcpCallID, endpointID, ConnectionMode.SendRecv);
+
+		final int txID = mgcpProvider.getUniqueTransactionHandler();
+		createConnection.setTransactionHandle(txID);
+		
+		MgcpConnectionActivity connectionActivity = null;
+		try {
+			connectionActivity = mgcpProvider.getConnectionActivity(txID, endpointID);
+			ActivityContextInterface epnAci = mgcpActivityContestInterfaceFactory.getActivityContextInterface(connectionActivity);
+			epnAci.attach(sbbLocalObject);
+		} catch (FactoryException ex) {
+			ex.printStackTrace();
+		} catch (NullPointerException ex) {
+			ex.printStackTrace();
+		} catch (UnrecognizedActivityException ex) {
+			ex.printStackTrace();
+		}
+		
+		tracer.info("CRCX: " + createConnection);
+		mgcpProvider.sendMgcpEvents(new JainMgcpEvent[] { createConnection });
+		tracer.info("CRCX sent; ep ID=" + endpointID + " sbb=" + sbbLocalObject);
+	}
+*/
+/*
+	void sendRSIP(Channel channel){
+		final SbbLocalObject sbbLocalObject = sbbContext.getSbbLocalObject();
+		
+		EndpointIdentifier endpointID = new EndpointIdentifier(channel.getEndpointId(),channel.getGatewayAddress());
+		this.setEndpointIdentifier(endpointID);
+		tracer.info("RSIP EpId " + endpointID);
+		RestartInProgress rsip = new RestartInProgress(this, endpointID, RestartMethod.Graceful);
+
+		final int txID = mgcpProvider.getUniqueTransactionHandler();
+		rsip.setTransactionHandle(txID);
+		
+		MgcpConnectionActivity connectionActivity = mgcpProvider.getConnectionActivity(txID, endpointID);
+		ActivityContextInterface epnAci = mgcpActivityContestInterfaceFactory.getActivityContextInterface(connectionActivity);
+		epnAci.attach(sbbLocalObject);
+		
+		mgcpProvider.sendMgcpEvents(new JainMgcpEvent[] { rsip });
+		tracer.info("RSIP sent; ep ID=" + endpointID + " sbb=" + sbbLocalObject);
+	}
+*/
+	void sendAUEP(Channel channel){
+		final SbbLocalObject sbbLocalObject = sbbContext.getSbbLocalObject();
+		
+		EndpointIdentifier endpointID = new EndpointIdentifier(channel.getEndpointId(),channel.getGatewayAddress());
+		this.setEndpointIdentifier(endpointID);
+		tracer.info("AUEP EpId " + endpointID);
+		AuditEndpoint auep = new AuditEndpoint(this, endpointID);
+
+		final int txID = mgcpProvider.getUniqueTransactionHandler();
+		auep.setTransactionHandle(txID);
+	
+		// FIXME seems it is useless to attach AUEP and wait for response - let response be initial event
+//		MgcpConnectionActivity connectionActivity = mgcpProvider.getConnectionActivity(txID, endpointID);
+//		ActivityContextInterface epnAci = mgcpActivityContestInterfaceFactory.getActivityContextInterface(connectionActivity);
+//		epnAci.attach(sbbLocalObject);
+		
+		mgcpProvider.sendMgcpEvents(new JainMgcpEvent[] { auep });
+		tracer.info("AUEP sent; ep ID=" + endpointID + " sbbContext=" + sbbContext + " sbb=" + sbbLocalObject);
 	}
 }

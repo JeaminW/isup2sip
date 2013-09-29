@@ -77,11 +77,15 @@ public class CicManagement {
 		logger.warning("Isup2Sip cic management started");
 
 		channelByCic.clear();
+// DEBUG!!
+//addMultiplex(0, "192.168.1.13:2427", 0);
 	}
 
 	public void addMultiplex(int multiplexId, String gateway, int multiplexPort){
 		// create CICs in "unknown" state
 		// fire NewMultiplexEvent to start corresponding Sbb
+		logger.info("adding multiplex " + multiplexId + " gatetway " + gateway + " port " + multiplexPort);
+
 		for(int ts = 1; ts <= 31; ts++){
 			int cic = 32*multiplexId + ts;
 			int ep = 32*multiplexPort + ts;
@@ -89,15 +93,17 @@ public class CicManagement {
 			
 			// TODO this is Wrong! 
 			// signaling timeslots should be detected by means of MGCP, not during a failure of a real SIP->ISUP call..
-			ch.setState(State.IDLE);
+//ch.setState(State.IDLE);
 			
 			channelByCic.put(cic, ch);
+			logger.info("adding channel" + ch.toString());
 		}
 	}
 	
 	public void resetMultiplex(int multiplexId){
 		logger.warning("resetting multiplex #" + multiplexId);
 		for(int ts = 1; ts <= 31; ts++){
+//		for(int ts = 1; ts <= 2; ts++){		// just for debuf, to reduce logging
 			int cic = 32*multiplexId + ts;
 			Channel ch = channelByCic.get(cic);
 			ch.setState(State.UNKNOWN);
@@ -237,6 +243,7 @@ public class CicManagement {
                     EventTypeID requestType = conn.getEventTypeID("org.mobicents.isup2sip.commonlibs.REQ_RSIP", "org.mobicents", "1.0");
                     
                     RequestRsipEvent epEvent = new RequestRsipEvent(ch);
+                    logger.info("firing event " + epEvent + " for " + ch + " ---- " + ch.getEndpointId() + " " + ch.getGatewayAddress());
                     
  //                   CustomEvent customEvent = new CustomEvent(orderId, amount, customerfullname, cutomerphone, userName);
 

@@ -34,7 +34,7 @@ import org.mobicents.ss7.management.console.ShellExecutor;
  */
 public class Isup2SipShellExecutor implements ShellExecutor {
 
-	private static final Logger logger = Logger.getLogger(Isup2SipShellExecutor.class);
+	private static final org.apache.log4j.Logger logger = Logger.getLogger(Isup2SipShellExecutor.class);
 
 	private Isup2SipManagement isup2SipManagement;
 	private Isup2SipPropertiesManagement isup2sipPropertiesManagement = Isup2SipPropertiesManagement.getInstance();
@@ -118,13 +118,15 @@ public class Isup2SipShellExecutor implements ShellExecutor {
 			isup2sipPropertiesManagement.setSipPeer(options[3]);
 		} else if (parName.equals(Isup2SipPropertiesManagement.SIP_IP)) {
 			isup2sipPropertiesManagement.setSipIp(options[3]);
-		} else if(parName.equals(Isup2SipPropertiesManagement.MUX)){
+		} else if(parName.equals(Isup2SipPropertiesManagement.TDM)){
 			int index = Integer.parseInt(options[3]);
 			isup2sipPropertiesManagement.delMultiplex(index);
 			
 			if(options.length > 5){
-				isup2sipPropertiesManagement.addMultiplex(index, options[4], Integer.parseInt(options[5]));
-			
+				String gateway = options[4];
+				int port = Integer.parseInt(options[5]);
+				logger.info("creating multiplex " + index + " gatetway " + gateway + " port " + port);
+				isup2sipPropertiesManagement.addMultiplex(index, gateway, port);
 				isup2sipPropertiesManagement.getCicManagement().resetMultiplex(index);
 			}
 		} else {
@@ -183,7 +185,7 @@ public class Isup2SipShellExecutor implements ShellExecutor {
 
 			sb.append(Isup2SipPropertiesManagement.SIP_IP + " = ");
 			sb.append(isup2sipPropertiesManagement.getSipIp());
-			sb.append("\n");
+			sb.append(", ");
 			
 			sb.append(Isup2SipPropertiesManagement.SIP_PEER + " = ");
 			sb.append(isup2sipPropertiesManagement.getSipPeer());

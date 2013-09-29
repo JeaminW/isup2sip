@@ -76,7 +76,7 @@ import org.mobicents.slee.resources.ss7.isup.ratype.RAISUPProvider;
  */
 public abstract class IsupManagementSbb implements javax.slee.Sbb {
 	private SbbContext sbbContext;
-	private TimerFacility timerFacility;
+	private TimerFacility timerFacility = null;
 	private static Tracer tracer;
 		
 	protected RAISUPProvider isupProvider;
@@ -84,12 +84,12 @@ public abstract class IsupManagementSbb implements javax.slee.Sbb {
     protected ISUPParameterFactory isupParameterFactory;
     protected org.mobicents.slee.resources.ss7.isup.ratype.ActivityContextInterfaceFactory isupActivityContextInterfaceFactory;
     
-    private static final Isup2SipPropertiesManagement isup2SipPropertiesManagement = 
+    private Isup2SipPropertiesManagement isup2SipPropertiesManagement = 
     		Isup2SipPropertiesManagement.getInstance();
     
-    private static final CicManagement cicManagement = isup2SipPropertiesManagement.getCicManagement();
+    private CicManagement cicManagement = isup2SipPropertiesManagement.getCicManagement();
     
-    private static final int remoteSPC = isup2SipPropertiesManagement.getRemoteSPC();
+    private int remoteSPC = isup2SipPropertiesManagement.getRemoteSPC();
     
     public IsupManagementSbb(){ }
     
@@ -168,9 +168,9 @@ public abstract class IsupManagementSbb implements javax.slee.Sbb {
 	}
 	
 	public void onServiceStartedEvent(ServiceStartedEvent event, ActivityContextInterface aci){
-		tracer.severe("service started");
+		tracer.severe("-- service started");
 //		isup2SipPropertiesManagement.registerIsupManagement();
-//		aci.detach(sbbContext.getSbbLocalObject());
+		aci.detach(sbbContext.getSbbLocalObject());
 	}
 
 	
@@ -179,12 +179,32 @@ public abstract class IsupManagementSbb implements javax.slee.Sbb {
 		if (tracer == null) {
 			tracer = sbbContext.getTracer(IsupManagementSbb.class.getSimpleName());
 		}
+		Context ctx = null;
+		
 		try{
-			Context ctx = (Context) new InitialContext();
+			tracer.severe("trying to start!!!!");
+			ctx = (Context) new InitialContext().lookup(Isup2SipManagement.CONTEXT);
+		} catch (Exception e) {
+			tracer.severe("error setting context" + e);
+		}
+		
+		try {
 			timerFacility = (TimerFacility) ctx.lookup(TimerFacility.JNDI_NAME);
 		} catch (Exception e) {
-			tracer.severe("error setting context");
+			tracer.severe("error configuring timer" + e);
 		}
+		
+		try{
+			// ISUP
+            isupProvider = (RAISUPProvider) ctx.lookup("slee/resources/isup/1.0/provider");
+            isupMessageFactory = isupProvider.getMessageFactory();
+            isupParameterFactory = isupProvider.getParameterFactory();
+            isupActivityContextInterfaceFactory = (org.mobicents.slee.resources.ss7.isup.ratype.ActivityContextInterfaceFactory) ctx.lookup("slee/resources/isup/1.0/acifactory");
+								
+		} catch (Exception e) {
+			tracer.severe("error configuring isup" + e);
+		}
+		tracer.warning("contex is set ---- ");
 	}
 
 	public void unsetSbbContext() {
